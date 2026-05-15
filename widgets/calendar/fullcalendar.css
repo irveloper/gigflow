@@ -1,0 +1,219 @@
+.calendar-shell {
+  --calendar-surface: hsl(var(--background));
+  --calendar-surface-muted: hsl(var(--muted));
+  --calendar-border: hsl(var(--border));
+  --calendar-foreground: hsl(var(--foreground));
+  --calendar-muted: hsl(var(--muted-foreground));
+  --calendar-primary: hsl(var(--primary));
+  --calendar-primary-soft: color-mix(in srgb, hsl(var(--primary)) 12%, transparent);
+  --calendar-success: hsl(142 71% 45%);
+  --calendar-success-soft: hsl(142 68% 94%);
+  --calendar-warning: hsl(32 95% 44%);
+  --calendar-warning-soft: hsl(38 92% 95%);
+  --calendar-danger: hsl(var(--destructive));
+  --calendar-danger-soft: hsl(0 86% 97%);
+}
+
+.calendar-shell .fc {
+  color: var(--calendar-foreground);
+}
+
+.calendar-shell .fc .fc-toolbar {
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.calendar-shell .fc .fc-toolbar-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.calendar-shell .fc .fc-button-group {
+  gap: 0.35rem;
+}
+
+.calendar-shell .fc .fc-button {
+  background: var(--calendar-surface);
+  border: 1px solid var(--calendar-border);
+  border-radius: 999px;
+  box-shadow: none;
+  color: var(--calendar-foreground);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.55rem 0.9rem;
+  text-transform: capitalize;
+}
+
+.calendar-shell .fc .fc-button:hover,
+.calendar-shell .fc .fc-button:focus-visible {
+  background: var(--calendar-surface-muted);
+  border-color: var(--calendar-primary);
+  color: var(--calendar-foreground);
+}
+
+.calendar-shell .fc .fc-button-primary:not(:disabled).fc-button-active {
+  background: var(--calendar-primary);
+  border-color: var(--calendar-primary);
+  color: hsl(var(--primary-foreground));
+}
+
+.calendar-shell .fc .fc-scrollgrid,
+.calendar-shell .fc .fc-theme-standard td,
+.calendar-shell .fc .fc-theme-standard th {
+  border-color: var(--calendar-border);
+}
+
+.calendar-shell .fc .fc-col-header-cell {
+  background: color-mix(in srgb, var(--calendar-surface-muted) 55%, transparent);
+  color: var(--calendar-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.calendar-shell .fc .fc-daygrid-day-number,
+.calendar-shell .fc .fc-timegrid-axis-cushion,
+.calendar-shell .fc .fc-timegrid-slot-label-cushion {
+  color: var(--calendar-muted);
+  font-size: 0.8rem;
+}
+
+.calendar-shell .fc .fc-daygrid-day.fc-day-today {
+  background: linear-gradient(180deg, var(--calendar-primary-soft), transparent 58%);
+}
+
+.calendar-shell .fc .fc-highlight {
+  background: var(--calendar-primary-soft);
+}
+
+.calendar-shell .fc .fc-event {
+  border: 0;
+  border-radius: 1rem;
+  margin-top: 0.2rem;
+  padding: 0.15rem;
+}
+
+.calendar-shell .fc .fc-event-main {
+  padding: 0;
+}
+
+.calendar-shell .fc .event-tone-scheduled {
+  background: var(--calendar-primary-soft);
+  color: var(--calendar-primary);
+}
+
+.calendar-shell .fc .event-tone-in-progress {
+  background: var(--calendar-warning-soft);
+  color: var(--calendar-warning);
+}
+
+.calendar-shell .fc .event-tone-checked-in {
+  background: var(--calendar-success-soft);
+  color: var(--calendar-success);
+}
+
+.calendar-shell .fc .event-tone-cancelled {
+  background: var(--calendar-danger-soft);
+  color: var(--calendar-danger);
+}
+
+.calendar-shell .fc .fc-more-link {
+  color: var(--calendar-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.calendar-event-chip {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+  padding: 0.35rem 0.55rem;
+}
+
+.calendar-event-time {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  opacity: 0.85;
+}
+
+.calendar-event-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.calendar-event-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.72rem;
+  opacity: 0.8;
+}
+
+/* Now indicator */
+.calendar-shell .fc .fc-timegrid-now-indicator-line {
+  border-color: var(--calendar-primary);
+  border-width: 2px;
+}
+
+.calendar-shell .fc .fc-timegrid-now-indicator-arrow {
+  border-color: var(--calendar-primary);
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+}
+
+/* Day view column header */
+.calendar-shell .fc .fc-day-today .fc-col-header-cell-cushion {
+  color: var(--calendar-primary);
+  font-weight: 800;
+}
+
+/* Timegrid slot lines */
+.calendar-shell .fc .fc-timegrid-slot-minor {
+  border-top-style: dotted;
+  border-color: color-mix(in srgb, var(--calendar-border) 50%, transparent);
+}
+
+/* Event stack in week/day: tighter overlap */
+.calendar-shell .fc .fc-timegrid-event-harness-inset .fc-timegrid-event {
+  box-shadow: 0 1px 4px -1px rgba(0 0 0 / 0.12);
+}
+
+/* Mobile: stack toolbar vertically, hide day view button */
+@media (max-width: 640px) {
+  .calendar-shell .fc .fc-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .calendar-shell .fc .fc-toolbar-chunk {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  /* On small screens hide day button to save space — week covers it */
+  .calendar-shell .fc .fc-timeGridDay-button {
+    display: none;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .calendar-shell .fc .fc-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .calendar-shell .fc .fc-toolbar-chunk {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}

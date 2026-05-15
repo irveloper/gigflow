@@ -1,0 +1,156 @@
+/**
+ * Events Feature Scenarios
+ *
+ * Source of truth for event management behavior.
+ * Update here FIRST when requirements change.
+ */
+
+import { eventFixtures, allEvents } from "@/specs/fixtures"
+import { userFixtures } from "@/specs/fixtures"
+
+const TODAY = "2026-04-21"
+
+export const eventsScenarios = {
+  loading: {
+    "loads all events on demand": {
+      given: "empty $events store",
+      when: "loadEvents is triggered",
+      then: [
+        "loadEventsFx is called",
+        "$isLoading is true during fetch",
+        "$events is populated with returned events",
+        "$isLoading is false after fetch",
+      ],
+      expectedCount: allEvents.length,
+    },
+  },
+
+  derived: {
+    "$todayEvents contains only today's events": {
+      given: { events: allEvents, today: TODAY },
+      then: [
+        "only events with date === today are included",
+        "events from yesterday are excluded",
+        "events from tomorrow are excluded",
+      ],
+      expectedIds: [eventFixtures.todayAcoustic.id, eventFixtures.todayJazz.id],
+    },
+
+    "$upcomingEvents contains only future events": {
+      given: { events: allEvents, today: TODAY },
+      then: ["only events with date > today are included", "today's events are excluded", "past events are excluded"],
+    },
+  },
+
+  checkIn: {
+    "musician checks in to scheduled event": {
+      given: {
+        event: eventFixtures.todayAcoustic,
+        user: userFixtures.musician,
+        photo: "File object",
+      },
+      when: "checkIn event is triggered with eventId + photo + timestamp",
+      then: [
+        "checkInFx is called",
+        "$isLoading is true during check-in",
+        "event in $events is updated: checkedIn=true, status='in-progress', checkInTime set",
+        "$isLoading is false after check-in",
+      ],
+    },
+  },
+
+  crud: {
+    "manager creates a new event": {
+      given: { user: userFixtures.manager, input: "CreateEventInput" },
+      when: "eventCreated is triggered",
+      then: [
+        "new event appears in $events with generated id",
+        "event status is 'scheduled'",
+        "checkedIn is false",
+        "durationMinutes is preserved for scheduling views",
+      ],
+    },
+
+    "manager updates an existing event": {
+      given: { event: eventFixtures.tomorrowPiano },
+      when: "updateEvent is triggered with modified event",
+      then: ["$events contains the updated event", "other events are unchanged"],
+    },
+
+    "manager deletes an event": {
+      given: { eventId: eventFixtures.tomorrowPiano.id },
+      when: "deleteEvent is triggered with eventId",
+      then: ["event is removed from $events", "other events are unchanged"],
+    },
+  },
+
+  actions: {
+    "cancelEvent sets status to cancelled": {
+      given: { event: eventFixtures.todayAcoustic },
+      when: "cancelEvent is triggered with eventId",
+      then: ["event status becomes 'cancelled'", "all other fields are preserved"],
+    },
+
+    "completeEvent sets status to completed and checkedIn to true": {
+      given: { event: eventFixtures.todayAcoustic },
+      when: "completeEvent is triggered with eventId",
+      then: ["event status becomes 'completed'", "checkedIn is true", "all other fields are preserved"],
+    },
+
+    "confirmCheckIn sets status to completed": {
+      given: { event: { ...eventFixtures.todayAcoustic, status: "in-progress", checkedIn: true } },
+      when: "confirmCheckIn is triggered with eventId",
+      then: ["event status becomes 'completed'", "checkedIn remains true"],
+    },
+
+    "rejectCheckIn resets check-in fields": {
+      given: { event: { ...eventFixtures.todayAcoustic, status: "in-progress", checkedIn: true } },
+      when: "rejectCheckIn is triggered with eventId",
+      then: [
+        "event status reverts to 'scheduled'",
+        "checkedIn becomes false",
+        "checkInTime, checkInLocation, checkInComments are cleared",
+      ],
+    },
+
+    "$pendingCheckIns contains in-progress checked-in events": {
+      given: {
+        events: [
+          { ...eventFixtures.todayAcoustic, status: "in-progress", checkedIn: true },
+          eventFixtures.todayJazz,
+        ],
+      },
+      then: ["only events with status='in-progress' and checkedIn=true are included"],
+    },
+  },
+
+  scheduling: {
+    "calendar adapter preserves event duration in the rendered range": {
+      given: { event: eventFixtures.todayAcoustic },
+      when: "event is converted for calendar rendering",
+      then: [
+        "calendar start uses Event.date + Event.time",
+        "calendar end is derived from durationMinutes",
+        "the original event remains available for click handling",
+      ],
+      expectedEnd: `${eventFixtures.todayAcoustic.date}T21:00:00`,
+    },
+
+    "manager cannot schedule overlapping events for the same musician": {
+      given: {
+        candidate: {
+          ...eventFixtures.todayAcoustic,
+          id: "candidate-overlap",
+          time: "20:00",
+        },
+        existing: [eventFixtures.todayJazz],
+      },
+      when: "schedule conflict validation runs",
+      then: [
+        "overlap is detected when the same musician already has a colliding event",
+        "the conflicting event ids are returned for UI feedback",
+      ],
+      expectedConflictIds: [eventFixtures.todayJazz.id],
+    },
+  },
+} as const

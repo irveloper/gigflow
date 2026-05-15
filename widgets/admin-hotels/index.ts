@@ -1,0 +1,1 @@
+export { AdminHotelsManager } from "./ui"

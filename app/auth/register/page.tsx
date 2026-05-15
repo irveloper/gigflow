@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useUnit } from "effector-react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,16 +11,18 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Music, Mail, Lock, User, Phone, UserPlus } from "lucide-react"
 import { authModel } from "@/features/auth/model"
-import { useToast } from "@/hooks/use-toast"
+import { $user } from "@/entities/user/model"
+import { sileo } from "sileo"
 import Link from "next/link"
 
 export default function RegisterPage() {
   const router = useRouter()
-  const { toast } = useToast()
 
-  const { isLoading, authError } = useUnit({
+  const { isLoading, authError, user, isAuthResolved } = useUnit({
     isLoading: authModel.$isLoading,
     authError: authModel.$authError,
+    user: $user,
+    isAuthResolved: authModel.$isAuthResolved,
   })
 
   const [formData, setFormData] = useState({
@@ -28,7 +30,7 @@ export default function RegisterPage() {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "" as "musician" | "manager" | "hotel" | "",
+    role: "" as "musician" | "hotel" | "",
     phone: "",
     shows: [] as string[],
     hotel: "",
@@ -37,24 +39,23 @@ export default function RegisterPage() {
     contactPerson: "",
   })
 
+  // Redirect already-authenticated users away from register
+  useEffect(() => {
+    if (isAuthResolved && user) {
+      router.replace("/")
+    }
+  }, [isAuthResolved, router, user])
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!formData.name || !formData.email || !formData.password || !formData.role) {
-      toast({
-        title: "Error",
-        description: "Por favor completa todos los campos obligatorios",
-        variant: "destructive",
-      })
+      sileo.error({ title: "Error", description: "Por favor completa todos los campos obligatorios" })
       return
     }
 
     if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Las contraseñas no coinciden",
-        variant: "destructive",
-      })
+      sileo.error({ title: "Error", description: "Las contraseñas no coinciden" })
       return
     }
 
@@ -72,17 +73,10 @@ export default function RegisterPage() {
         contactPerson: formData.contactPerson,
       })
 
-      toast({
-        title: "Registro exitoso",
-        description: "Tu cuenta ha sido creada correctamente",
-      })
+      sileo.success({ title: "Registro exitoso", description: "Tu cuenta ha sido creada correctamente" })
       router.push("/")
-    } catch (error) {
-      toast({
-        title: "Error de Registro",
-        description: "No se pudo crear la cuenta. Intenta de nuevo.",
-        variant: "destructive",
-      })
+    } catch {
+      sileo.error({ title: "Error de Registro", description: "No se pudo crear la cuenta. Intenta de nuevo." })
     }
   }
 
@@ -142,14 +136,13 @@ export default function RegisterPage() {
                 <Label htmlFor="role">Tipo de cuenta *</Label>
                 <Select
                   value={formData.role}
-                  onValueChange={(value: "musician" | "manager" | "hotel") => setFormData({ ...formData, role: value })}
+                  onValueChange={(value: "musician" | "hotel") => setFormData({ ...formData, role: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona tu rol" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="musician">Músico</SelectItem>
-                    <SelectItem value="manager">Gerente</SelectItem>
                     <SelectItem value="hotel">Hotel</SelectItem>
                   </SelectContent>
                 </Select>

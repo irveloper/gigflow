@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useUnit } from "effector-react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,16 +12,34 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Music, Mail, Lock, LogIn } from "lucide-react"
 import { authModel } from "@/features/auth/model"
-import { useToast } from "@/hooks/use-toast"
+import { $user } from "@/entities/user/model"
+import { sileo } from "sileo"
 import Link from "next/link"
+
+function getSafeRedirect(path: string | null): string {
+  if (!path || !path.startsWith("/") || path.startsWith("//")) {
+    return "/"
+  }
+
+  return path
+}
+
+function getRedirectTarget(): string {
+  if (typeof window === "undefined") {
+    return "/"
+  }
+
+  return getSafeRedirect(new URLSearchParams(window.location.search).get("from"))
+}
 
 export default function LoginPage() {
   const router = useRouter()
-  const { toast } = useToast()
 
-  const { isLoading, authError } = useUnit({
+  const { isLoading, authError, user, isAuthResolved } = useUnit({
     isLoading: authModel.$isLoading,
     authError: authModel.$authError,
+    user: $user,
+    isAuthResolved: authModel.$isAuthResolved,
   })
 
   const [formData, setFormData] = useState({
@@ -29,39 +47,41 @@ export default function LoginPage() {
     password: "",
   })
 
+  // Redirect already-authenticated users away from login
+  useEffect(() => {
+    if (isAuthResolved && user) {
+      router.replace(getRedirectTarget())
+    }
+  }, [isAuthResolved, router, user])
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!formData.email || !formData.password) {
-      toast({
-        title: "Error",
-        description: "Por favor completa todos los campos",
-        variant: "destructive",
-      })
+      sileo.error({ title: "Error", description: "Por favor completa todos los campos" })
       return
     }
 
     try {
-      authModel.loginSubmitted(formData)
-      // Wait for the effect to complete
-      await new Promise((resolve) => {
-        const unsubscribe = authModel.loginFx.doneData.watch(() => {
-          unsubscribe()
-          resolve(void 0)
-        })
-      })
+      // Use the effect directly so we can await it
+      await authModel.loginFx(formData)
 
-      toast({
-        title: "Bienvenido",
-        description: "Has iniciado sesión correctamente",
-      })
-      router.push("/")
-    } catch (error) {
-      toast({
-        title: "Error de Autenticación",
-        description: "Credenciales inválidas. Intenta de nuevo.",
-        variant: "destructive",
-      })
+      sileo.success({ title: "Bienvenido", description: "Has iniciado sesión correctamente" })
+      router.replace(getRedirectTarget())
+    } catch {
+      sileo.error({ title: "Error de Autenticación", description: "Credenciales inválidas. Intenta de nuevo." })
+    }
+  }
+
+  const loginWithDemo = async (email: string, password: string) => {
+    setFormData({ email, password })
+    try {
+      // Await the effect directly — do NOT just fire the event
+      await authModel.loginFx({ email, password })
+      sileo.success({ title: "Bienvenido", description: "Has iniciado sesión correctamente" })
+      router.replace(getRedirectTarget())
+    } catch {
+      sileo.error({ title: "Error", description: "No se pudo iniciar sesión. Intenta de nuevo." })
     }
   }
 
@@ -70,11 +90,6 @@ export default function LoginPage() {
     { email: "gerente@test.com", password: "123456", role: "Gerente", color: "bg-purple-100 text-purple-800" },
     { email: "hotel@test.com", password: "123456", role: "Hotel", color: "bg-green-100 text-green-800" },
   ]
-
-  const loginWithDemo = (email: string, password: string) => {
-    setFormData({ email, password })
-    authModel.loginSubmitted({ email, password })
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -133,7 +148,7 @@ export default function LoginPage() {
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
                     Iniciando sesión...
                   </>
                 ) : (
@@ -153,36 +168,38 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
-        {/* Demo Accounts */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Cuentas Demo</CardTitle>
-            <CardDescription className="text-xs">Prueba la plataforma con diferentes roles</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {demoAccounts.map((account, index) => (
-              <div key={index}>
-                <Button
-                  variant="outline"
-                  className="w-full justify-between text-left h-auto p-3 bg-transparent"
-                  onClick={() => loginWithDemo(account.email, account.password)}
-                  disabled={isLoading}
-                >
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge className={account.color} variant="secondary">
-                        {account.role}
-                      </Badge>
+        {/* Demo Accounts — hidden in production */}
+        {process.env.NODE_ENV !== "production" && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Cuentas Demo</CardTitle>
+              <CardDescription className="text-xs">Prueba la plataforma con diferentes roles</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {demoAccounts.map((account, index) => (
+                <div key={account.email}>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-between text-left h-auto p-3 bg-transparent"
+                    onClick={() => loginWithDemo(account.email, account.password)}
+                    disabled={isLoading}
+                  >
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge className={account.color} variant="secondary">
+                          {account.role}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-gray-600">{account.email}</p>
                     </div>
-                    <p className="text-xs text-gray-600">{account.email}</p>
-                  </div>
-                  <LogIn className="h-4 w-4" />
-                </Button>
-                {index < demoAccounts.length - 1 && <Separator className="my-2" />}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+                    <LogIn className="h-4 w-4" />
+                  </Button>
+                  {index < demoAccounts.length - 1 && <Separator className="my-2" />}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   )

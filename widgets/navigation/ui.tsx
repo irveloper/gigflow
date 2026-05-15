@@ -98,7 +98,7 @@ export function Navigation() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={user.profileImage || "/placeholder.svg"} alt={user.name} />
+                <AvatarImage src={user.avatar ?? "/placeholder.svg"} alt={user.name} />
                 <AvatarFallback>
                   {user.name
                     .split(" ")

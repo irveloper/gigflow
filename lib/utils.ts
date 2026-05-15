@@ -1,6 +1,2 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
+// Shadcn convention path — re-exports from canonical FSD location
+export { cn, formatDate, formatTime, formatCurrency } from "@/shared/lib/utils"
