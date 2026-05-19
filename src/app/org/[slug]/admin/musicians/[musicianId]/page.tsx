@@ -60,6 +60,7 @@ export default function MusicianDetailPage() {
         email: form.email,
         phone: form.phone,
         instruments: form.instruments.split(",").map((s) => s.trim()).filter(Boolean),
+        styles: musician.styles,
         hourlyRate: Number(form.hourlyRate),
         isActive: form.isActive,
         createdAt: musician.createdAt,
