@@ -162,9 +162,8 @@ async function handleEvent(event: Stripe.Event) {
 
     case "invoice.payment_failed": {
       const invoice = event.data.object as Stripe.Invoice
-      const stripeSubscriptionId = typeof invoice.subscription === "string"
-        ? invoice.subscription
-        : invoice.subscription?.id
+      const sub = invoice.parent?.subscription_details?.subscription
+      const stripeSubscriptionId = typeof sub === "string" ? sub : sub?.id
 
       if (!stripeSubscriptionId) break
 
@@ -189,9 +188,8 @@ async function handleEvent(event: Stripe.Event) {
 
     case "invoice.payment_succeeded": {
       const invoice = event.data.object as Stripe.Invoice
-      const stripeSubscriptionId = typeof invoice.subscription === "string"
-        ? invoice.subscription
-        : invoice.subscription?.id
+      const sub = invoice.parent?.subscription_details?.subscription
+      const stripeSubscriptionId = typeof sub === "string" ? sub : sub?.id
 
       if (!stripeSubscriptionId) break
 
