@@ -10,9 +10,10 @@ import type { DatesSetArg, EventClickArg, EventContentArg, EventDropArg } from "
 import { addMonths, format, startOfMonth } from "date-fns"
 import { es } from "date-fns/locale"
 import { useEffect, useState } from "react"
+import { useParams } from "next/navigation"
 import { useUnit } from "effector-react"
 import Link from "next/link"
-import { CalendarDays, Camera, Clock3, MapPin, Sparkles } from "lucide-react"
+import { CalendarDays, Camera, CheckCircle2, Clock3, MapPin, Sparkles } from "lucide-react"
 import {
   filterEventsForCalendar,
   getCalendarEventTone,
@@ -52,6 +53,9 @@ const toneVariant = (event: Parameters<typeof getCalendarEventTone>[0]) =>
   TONE_VARIANT[getCalendarEventTone(event)] ?? "outline"
 
 export function CalendarExperience() {
+  const params = useParams()
+  const orgSlug = params.slug as string | undefined
+
   const { events, user, isLoading } = useUnit({
     events: eventsModel.$events,
     user: $user,
@@ -272,9 +276,14 @@ export function CalendarExperience() {
                         <h2 className="text-lg font-semibold">{featuredEvent.title}</h2>
                         <p className="text-sm text-muted-foreground">{featuredEvent.description ?? "Sin descripción adicional."}</p>
                       </div>
-                      <Badge variant={toneVariant(featuredEvent)}>
-                        {getEventStatusLabel(featuredEvent)}
-                      </Badge>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {user?.role === "musician" && featuredEvent.organizationName && (
+                          <Badge variant="outline" className="text-xs">{featuredEvent.organizationName}</Badge>
+                        )}
+                        <Badge variant={toneVariant(featuredEvent)}>
+                          {getEventStatusLabel(featuredEvent)}
+                        </Badge>
+                      </div>
                     </div>
 
                     <div className="space-y-2 text-sm text-muted-foreground">
@@ -290,17 +299,43 @@ export function CalendarExperience() {
                         <MapPin className="h-4 w-4 text-primary" />
                         <span>{featuredEvent.hotel}</span>
                       </div>
-                      {featuredEvent.musician ? (
+                      {(featuredEvent.musician ?? featuredEvent.band) ? (
                         <div className="flex items-center gap-2">
                           <CalendarDays className="h-4 w-4 text-primary" />
-                          <span>{featuredEvent.musician}</span>
+                          <span>{featuredEvent.musician ?? featuredEvent.band}</span>
                         </div>
                       ) : null}
                     </div>
 
-                    {user?.role === "musician" && featuredEvent.status === "scheduled" ? (
+                    {featuredEvent.checkedIn && (
+                      <div className="space-y-2 rounded-2xl border border-green-200 bg-green-50/60 p-3 text-sm dark:border-green-800 dark:bg-green-950/30">
+                        <div className="flex items-center gap-2 font-medium text-green-700 dark:text-green-400">
+                          <CheckCircle2 className="h-4 w-4" />
+                          Check-in registrado
+                        </div>
+                        {featuredEvent.checkInTime && (
+                          <p className="text-muted-foreground">
+                            <span className="font-medium">Hora:</span>{" "}
+                            {format(new Date(featuredEvent.checkInTime), "HH:mm", { locale: es })}
+                          </p>
+                        )}
+                        {featuredEvent.checkInLocation && (
+                          <p className="text-muted-foreground">
+                            <span className="font-medium">Ubicación:</span>{" "}
+                            {featuredEvent.checkInLocation.lat.toFixed(4)},{" "}
+                            {featuredEvent.checkInLocation.lng.toFixed(4)}
+                          </p>
+                        )}
+                        {featuredEvent.checkInComments && (
+                          <p className="text-muted-foreground">
+                            <span className="font-medium">Comentarios:</span> {featuredEvent.checkInComments}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {user?.role === "musician" && !featuredEvent.checkedIn && featuredEvent.status === "scheduled" ? (
                       <Button asChild className="w-full rounded-full">
-                        <Link href={`/check-in/${featuredEvent.id}`}>
+                        <Link href={orgSlug ? `/org/${orgSlug}/check-in/${featuredEvent.id}` : `/check-in/${featuredEvent.id}`}>
                           <Camera className="mr-2 h-4 w-4" />
                           Ir a check-in
                         </Link>
@@ -337,7 +372,12 @@ export function CalendarExperience() {
                             {getEventTimeLabel(event)} · {event.hotel}
                           </p>
                         </div>
-                        <Badge variant={toneVariant(event)}>{getEventStatusLabel(event)}</Badge>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {user?.role === "musician" && event.organizationName && (
+                            <Badge variant="outline" className="text-xs">{event.organizationName}</Badge>
+                          )}
+                          <Badge variant={toneVariant(event)}>{getEventStatusLabel(event)}</Badge>
+                        </div>
                       </div>
                     </button>
                   ))
@@ -371,7 +411,12 @@ export function CalendarExperience() {
                             {format(new Date(`${event.date}T${event.time}:00`), "d MMM", { locale: es })} · {getEventTimeLabel(event)} · {event.hotel}
                           </p>
                         </div>
-                        <Badge variant={toneVariant(event)}>{getEventStatusLabel(event)}</Badge>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {user?.role === "musician" && event.organizationName && (
+                            <Badge variant="outline" className="text-xs">{event.organizationName}</Badge>
+                          )}
+                          <Badge variant={toneVariant(event)}>{getEventStatusLabel(event)}</Badge>
+                        </div>
                       </div>
                     </button>
                   ))
@@ -402,6 +447,12 @@ export function CalendarExperience() {
                     {getEventStatusLabel(selectedEvent)}
                   </Badge>
                 </div>
+                {user?.role === "musician" && selectedEvent.organizationName && (
+                  <div className="flex items-center justify-between gap-3">
+                    <span>Organización</span>
+                    <span className="font-medium text-foreground">{selectedEvent.organizationName}</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between gap-3">
                   <span>Fecha</span>
                   <span className="font-medium text-foreground">
@@ -414,18 +465,48 @@ export function CalendarExperience() {
                   <span>Hotel</span>
                   <span className="font-medium text-foreground">{selectedEvent.hotel}</span>
                 </div>
-                {selectedEvent.musician ? (
+                {(selectedEvent.musician ?? selectedEvent.band) ? (
                   <div className="flex items-center justify-between gap-3">
-                    <span>Músico</span>
-                    <span className="font-medium text-foreground">{selectedEvent.musician}</span>
+                    <span>{selectedEvent.band ? "Banda" : "Músico"}</span>
+                    <span className="font-medium text-foreground">{selectedEvent.musician ?? selectedEvent.band}</span>
                   </div>
                 ) : null}
               </div>
 
+              {selectedEvent.checkedIn && (
+                <div className="space-y-2 rounded-2xl border border-green-200 bg-green-50/60 p-3 text-sm dark:border-green-800 dark:bg-green-950/30">
+                  <div className="flex items-center gap-2 font-medium text-green-700 dark:text-green-400">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Check-in ya registrado
+                  </div>
+                  {selectedEvent.checkInTime && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Hora de llegada</span>
+                      <span className="font-medium">{format(new Date(selectedEvent.checkInTime), "HH:mm", { locale: es })}</span>
+                    </div>
+                  )}
+                  {selectedEvent.checkInLocation && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Coordenadas</span>
+                      <span className="font-medium font-mono text-xs">
+                        {(selectedEvent.checkInLocation as { lat: number; lng: number }).lat.toFixed(4)},
+                        {(selectedEvent.checkInLocation as { lat: number; lng: number }).lng.toFixed(4)}
+                      </span>
+                    </div>
+                  )}
+                  {selectedEvent.checkInComments && (
+                    <div className="space-y-1">
+                      <span className="text-muted-foreground">Comentarios</span>
+                      <p className="font-medium">{selectedEvent.checkInComments}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <DialogFooter>
-                {user?.role === "musician" && selectedEvent.status === "scheduled" ? (
+                {user?.role === "musician" && !selectedEvent.checkedIn && selectedEvent.status === "scheduled" ? (
                   <Button asChild className="rounded-full">
-                    <Link href={`/check-in/${selectedEvent.id}`}>
+                    <Link href={orgSlug ? `/org/${orgSlug}/check-in/${selectedEvent.id}` : `/check-in/${selectedEvent.id}`}>
                       <Camera className="mr-2 h-4 w-4" />
                       Hacer check-in
                     </Link>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useUnit } from "effector-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -11,16 +11,31 @@ import { Badge } from "@/components/ui/badge"
 import { User, Phone, Mail, Music, Save, Edit } from "lucide-react"
 import { $user } from "@/entities/user/model"
 import { sileo } from "sileo"
+import { trpc } from "@/shared/lib/trpc"
+
+type MusicianStats = {
+  performances: number
+  hoursWorked: number
+  hotels: number
+  punctuality: number
+}
 
 export default function ProfilePage() {
   const user = useUnit($user)
+  const [stats, setStats] = useState<MusicianStats | null>(null)
+
+  useEffect(() => {
+    if (user?.role === "musician") {
+      trpc.musicians.myStats.query().then(setStats).catch(console.error)
+    }
+  }, [user?.role])
 
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
     phone: user?.phone || "",
-    shows: user?.shows?.join(", ") || "",
+    instruments: user?.instruments?.join(", ") || "",
     bio: "Músico profesional con más de 10 años de experiencia en presentaciones en vivo. Especializado en géneros acústicos, jazz y música contemporánea.",
   })
 
@@ -127,11 +142,11 @@ export default function ProfilePage() {
               {user.role === "musician" && (
                 <>
                   <div>
-                    <Label htmlFor="shows">Shows/Conceptos Musicales</Label>
+                    <Label htmlFor="instruments">Instrumentos/Conceptos Musicales</Label>
                     <Input
-                      id="shows"
-                      value={formData.shows}
-                      onChange={(e) => setFormData({ ...formData, shows: e.target.value })}
+                      id="instruments"
+                      value={formData.instruments}
+                      onChange={(e) => setFormData({ ...formData, instruments: e.target.value })}
                       disabled={!isEditing}
                       placeholder="Acoustic Set, Jazz Trio, Solo Piano"
                     />
@@ -176,22 +191,30 @@ export default function ProfilePage() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <p className="text-2xl font-bold text-blue-600">24</p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {stats ? stats.performances : "—"}
+                  </p>
                   <p className="text-sm text-gray-600">Presentaciones</p>
                 </div>
 
                 <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <p className="text-2xl font-bold text-green-600">48</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {stats ? stats.hoursWorked : "—"}
+                  </p>
                   <p className="text-sm text-gray-600">Horas Trabajadas</p>
                 </div>
 
                 <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <p className="text-2xl font-bold text-purple-600">5</p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {stats ? stats.hotels : "—"}
+                  </p>
                   <p className="text-sm text-gray-600">Hoteles</p>
                 </div>
 
                 <div className="text-center p-4 bg-orange-50 rounded-lg">
-                  <p className="text-2xl font-bold text-orange-600">98%</p>
+                  <p className="text-2xl font-bold text-orange-600">
+                    {stats ? `${stats.punctuality}%` : "—"}
+                  </p>
                   <p className="text-sm text-gray-600">Puntualidad</p>
                 </div>
               </div>

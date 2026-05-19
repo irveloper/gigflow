@@ -161,4 +161,27 @@ describe("auth model", () => {
       expect(scope.getState($isPending)).toBe(false)
     })
   })
+
+  describe("org slug — nav prefix race condition fix", () => {
+    it("org user has organizationSlug after checkAuth resolves", async () => {
+      const scope = fork({
+        handlers: [[checkAuthFx, () => managerUser]],
+      })
+
+      await allSettled(checkAuth, { scope })
+
+      expect(scope.getState($user)?.organizationSlug).toBe("plugin-cancun")
+    })
+
+    it("non-org user has no organizationSlug after checkAuth resolves", async () => {
+      const nonOrgUser = { ...musicianUser, organizationSlug: undefined }
+      const scope = fork({
+        handlers: [[checkAuthFx, () => nonOrgUser]],
+      })
+
+      await allSettled(checkAuth, { scope })
+
+      expect(scope.getState($user)?.organizationSlug).toBeUndefined()
+    })
+  })
 })

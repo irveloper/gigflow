@@ -1,21 +1,24 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+import NextAuth from "next-auth"
+import authConfig from "@/auth.config"
+import { rateLimiters } from "@/lib/ratelimit"
+
+const { auth } = NextAuth(authConfig)
 
 // ---------------------------------------------------------------------------
-// In-process rate limiter
+// In-process rate limiter — fallback when Upstash is not configured
 // Resets on Vercel cold starts — acceptable for MVP single-region deployment.
 // ---------------------------------------------------------------------------
 type RateLimitEntry = { count: number; resetAt: number }
 const rateLimitStore = new Map<string, RateLimitEntry>()
 
-const RATE_LIMIT_RULES: { pathPrefix: string; maxRequests: number; windowMs: number }[] = [
-  // Login: 10 attempts per 15 minutes per IP
-  { pathPrefix: "/api/auth/callback/credentials", maxRequests: 10, windowMs: 15 * 60 * 1000 },
-  // Registration: 5 attempts per hour per IP
-  { pathPrefix: "/api/trpc/auth.register", maxRequests: 5, windowMs: 60 * 60 * 1000 },
+const RATE_LIMIT_RULES: { pathPrefix: string; maxRequests: number; windowMs: number; limiterKey: "loginRateLimit" | "registerRateLimit" }[] = [
+  { pathPrefix: "/api/auth/callback/credentials", maxRequests: 10, windowMs: 15 * 60 * 1000, limiterKey: "loginRateLimit" },
+  { pathPrefix: "/api/trpc/auth.register", maxRequests: 5, windowMs: 60 * 60 * 1000, limiterKey: "registerRateLimit" },
 ]
 
-function checkRateLimit(request: NextRequest): NextResponse | null {
+async function checkRateLimit(request: NextRequest): Promise<NextResponse | null> {
   const pathname = request.nextUrl.pathname
   const rule = RATE_LIMIT_RULES.find((r) => pathname.startsWith(r.pathPrefix))
   if (!rule) return null
@@ -25,6 +28,21 @@ function checkRateLimit(request: NextRequest): NextResponse | null {
     request.headers.get("x-real-ip") ??
     "unknown"
 
+  // Upstash path
+  if (rateLimiters) {
+    const limiter = rateLimiters[rule.limiterKey]
+    const { success, reset } = await limiter.limit(ip)
+    if (!success) {
+      const retryAfter = Math.ceil((reset - Date.now()) / 1000)
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } },
+      )
+    }
+    return null
+  }
+
+  // In-process fallback
   const key = `${ip}:${rule.pathPrefix}`
   const now = Date.now()
   const entry = rateLimitStore.get(key)
@@ -40,10 +58,7 @@ function checkRateLimit(request: NextRequest): NextResponse | null {
     const retryAfter = Math.ceil((entry.resetAt - now) / 1000)
     return NextResponse.json(
       { error: "Too many requests. Please try again later." },
-      {
-        status: 429,
-        headers: { "Retry-After": String(retryAfter) },
-      },
+      { status: 429, headers: { "Retry-After": String(retryAfter) } },
     )
   }
 
@@ -51,11 +66,32 @@ function checkRateLimit(request: NextRequest): NextResponse | null {
 }
 
 // ---------------------------------------------------------------------------
+// CSP nonce generation
+// ---------------------------------------------------------------------------
+function buildCsp(nonce: string): string {
+  const isDev = process.env.NODE_ENV === "development"
+  return [
+    "default-src 'self'",
+    // 'strict-dynamic' lets nonce-trusted scripts load further scripts
+    // 'unsafe-eval' required by React in dev mode for call stack reconstruction
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""} https://js.stripe.com https://browser.sentry-cdn.com`,
+    isDev ? "style-src 'self' 'unsafe-inline'" : `style-src 'self' 'nonce-${nonce}'`,
+    "img-src 'self' data: blob: https://*.amazonaws.com",
+    "font-src 'self'",
+    `connect-src 'self' https://*.ingest.sentry.io https://api.stripe.com${isDev ? " ws: wss:" : ""}`,
+    `frame-src 'self' https://js.stripe.com${isDev ? " http://localhost:*" : ""}`,
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; ")
+}
+
+// ---------------------------------------------------------------------------
 // Route guards
 // ---------------------------------------------------------------------------
 
 // Routes that require authentication
-const PROTECTED_ROUTES = ["/", "/calendar", "/profile", "/notifications", "/reports", "/admin", "/hotel", "/check-in"]
+const PROTECTED_ROUTES = ["/", "/calendar", "/profile", "/notifications", "/reports", "/admin", "/hotel", "/check-in", "/org", "/superadmin"]
 
 // Routes that authenticated users should NOT access (pending is excluded — it's for authenticated users)
 const AUTH_ROUTES = ["/auth/login", "/auth/register"]
@@ -70,14 +106,14 @@ function isAuthRoute(pathname: string): boolean {
   return AUTH_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`))
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // Rate limiting runs before auth checks
-  const rateLimitResponse = checkRateLimit(request)
+  const rateLimitResponse = await checkRateLimit(request)
   if (rateLimitResponse) return rateLimitResponse
 
   const { pathname } = request.nextUrl
-  // NextAuth v5 (Auth.js) uses "authjs.session-token" by default,
-  // but we keep "next-auth.session-token" for backwards compatibility.
+
+  // Fast cookie-presence check (no DB call) for redirect logic
   const sessionToken =
     request.cookies.get("authjs.session-token")?.value ??
     request.cookies.get("__Secure-authjs.session-token")?.value ??
@@ -101,7 +137,39 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(safeFrom, request.url))
   }
 
-  return NextResponse.next()
+  // Email verification check — only for protected routes with a session
+  // Skips /auth/pending itself to avoid redirect loop
+  if (
+    isAuthenticated &&
+    isProtectedRoute(pathname) &&
+    pathname !== "/auth/pending" &&
+    !pathname.startsWith("/api/")
+  ) {
+    const session = await auth()
+    if (session?.user && session.user.emailVerified === false) {
+      return NextResponse.redirect(new URL("/auth/pending?verify=1", request.url))
+    }
+
+    // Redirect org users from legacy non-org routes to their org-scoped equivalent.
+    // Superadmin and pending users have no organizationSlug — they pass through unchanged.
+    const orgSlug = session?.user?.organizationSlug
+    if (orgSlug && !pathname.startsWith("/org/") && !pathname.startsWith("/superadmin")) {
+      return NextResponse.redirect(new URL(`/org/${orgSlug}${pathname}`, request.url))
+    }
+  }
+
+  // Generate per-request CSP nonce and inject into response headers
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64")
+  const response = NextResponse.next()
+  response.headers.set("x-nonce", nonce)
+  response.headers.set("Content-Security-Policy", buildCsp(nonce))
+  // Keep other security headers that were previously in next.config.mjs
+  response.headers.set("X-Frame-Options", "DENY")
+  response.headers.set("X-Content-Type-Options", "nosniff")
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin")
+  response.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
+  response.headers.set("X-DNS-Prefetch-Control", "off")
+  return response
 }
 
 export const config = {

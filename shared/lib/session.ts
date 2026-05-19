@@ -11,11 +11,16 @@ export function sessionToUser(sessionUser: SessionUser): User {
     role: sessionUser.role as User["role"],
     avatar: sessionUser.image ?? undefined,
     phone: sessionUser.phone,
-    shows: sessionUser.shows ?? [],
+    instruments: sessionUser.instruments ?? [],
+    styles: sessionUser.styles ?? [],
     hourlyRate: sessionUser.hourlyRate,
     location: sessionUser.location,
     contactPerson: sessionUser.contactPerson,
     isActive: sessionUser.isActive ?? true,
     createdAt: sessionUser.createdAt ?? new Date().toISOString(),
+    organizationId: sessionUser.organizationId ?? undefined,
+    organizationSlug: sessionUser.organizationSlug ?? undefined,
+    hotelId: sessionUser.hotelId ?? undefined,
+    musicianId: sessionUser.musicianId ?? undefined,
   }
 }

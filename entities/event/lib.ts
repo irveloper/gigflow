@@ -3,7 +3,7 @@ import { addMinutes, format } from "date-fns"
 import type { Event, User } from "@/shared/types"
 
 export const filterEventsForCalendar = (events: Event[], user: User | null) =>
-  user?.role === "musician" ? events.filter((event) => event.musicianId === user.id) : events
+  user?.role === "musician" ? events.filter((event) => event.musicianId === user.musicianId) : events
 
 export const getEventStartDate = (event: Pick<Event, "date" | "time">) => new Date(`${event.date}T${event.time}:00`)
 
@@ -77,29 +77,42 @@ export const getSchedulingConflicts = ({
   candidate,
   events,
   ignoreEventId,
+  bandMemberIds = {},
 }: {
   candidate: Event
   events: Event[]
   ignoreEventId?: string
+  /** Map of bandId → musicianId[] for client-side pre-validation */
+  bandMemberIds?: Record<string, string[]>
 }) =>
   events.filter((event) => {
-    if (event.id === ignoreEventId || event.id === candidate.id) {
-      return false
-    }
+    if (event.id === ignoreEventId || event.id === candidate.id) return false
+    if (event.status === "cancelled") return false
+    if (!eventsOverlap(candidate, event)) return false
 
-    if (event.status === "cancelled") {
-      return false
-    }
+    const candidateMusicianId = candidate.musicianId
+    const candidateBandMembers = candidate.bandId ? (bandMemberIds[candidate.bandId] ?? []) : []
+    const eventMusicianId = event.musicianId
+    const eventBandMembers = event.bandId ? (bandMemberIds[event.bandId] ?? []) : []
 
-    if (!candidate.musicianId || !event.musicianId || event.musicianId !== candidate.musicianId) {
-      return false
-    }
+    // solo vs solo
+    if (candidateMusicianId && eventMusicianId && candidateMusicianId === eventMusicianId) return true
+    // solo vs band
+    if (candidateMusicianId && eventBandMembers.includes(candidateMusicianId)) return true
+    // band vs solo
+    if (eventMusicianId && candidateBandMembers.includes(eventMusicianId)) return true
+    // band vs band (any shared member)
+    if (candidateBandMembers.some((id) => eventBandMembers.includes(id))) return true
 
-    return eventsOverlap(candidate, event)
+    return false
   })
 
-export const hasSchedulingConflict = (candidate: Event, events: Event[], ignoreEventId?: string) =>
-  getSchedulingConflicts({ candidate, events, ignoreEventId }).length > 0
+export const hasSchedulingConflict = (
+  candidate: Event,
+  events: Event[],
+  ignoreEventId?: string,
+  bandMemberIds?: Record<string, string[]>,
+) => getSchedulingConflicts({ candidate, events, ignoreEventId, bandMemberIds }).length > 0
 
 export const rescheduleEvent = (event: Event, start: Date): Event => ({
   ...event,

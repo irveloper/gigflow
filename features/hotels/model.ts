@@ -11,7 +11,11 @@ export const hotelUpdated = createEvent<Hotel>()
 export const hotelRemoved = createEvent<string>()
 export const hotelStatusToggled = createEvent<string>()
 
-export const loadHotelsFx = createEffect<void, Hotel[]>(() => hotelsApi.fetchHotels())
+type HotelsPage = { items: Hotel[]; total: number }
+
+export const loadHotelsFx = createEffect<void, HotelsPage>(() => hotelsApi.fetchHotels())
+
+export const $hotelsTotal = createStore(0).on(loadHotelsFx.doneData, (_, data) => data.total)
 
 export const createHotelFx = createEffect<CreateHotelInput, Hotel>((data) => hotelsApi.createHotel(data))
 
@@ -55,7 +59,7 @@ sample({ clock: hotelUpdated, target: updateHotelFx })
 sample({ clock: hotelRemoved, target: deleteHotelFx })
 sample({ clock: hotelStatusToggled, target: toggleHotelStatusFx })
 
-sample({ clock: loadHotelsFx.doneData, target: setHotels })
+sample({ clock: loadHotelsFx.doneData, fn: (data) => data.items, target: setHotels })
 sample({ clock: createHotelFx.doneData, target: addHotel })
 sample({ clock: updateHotelFx.doneData, target: updateHotel })
 sample({ clock: deleteHotelFx.doneData, target: removeHotel })
@@ -63,6 +67,7 @@ sample({ clock: toggleHotelStatusFx.doneData, target: updateHotel })
 
 export const hotelsModel = {
   $hotels,
+  $hotelsTotal,
   $activeHotels,
   $isLoading,
   $error,

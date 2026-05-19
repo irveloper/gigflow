@@ -4,8 +4,8 @@ import { trpc } from "@/shared/lib/trpc"
 // Phase 1: tRPC → mock data in server/routers/musicians.ts
 // Phase 4: server/routers/musicians.ts replaced with Supabase queries
 
-export async function fetchMusicians(): Promise<Musician[]> {
-  return trpc.musicians.getAll.query()
+export async function fetchMusicians(opts?: { limit?: number; offset?: number }): Promise<{ items: Musician[]; total: number }> {
+  return trpc.musicians.getAll.query(opts ?? {})
 }
 
 export async function createMusician(input: CreateMusicianInput): Promise<Musician> {

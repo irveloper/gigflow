@@ -8,9 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
-import { Camera, Clock, MapPin, Upload, CheckCircle, ArrowLeft, AlertTriangle } from "lucide-react"
+import { Camera, Clock, MapPin, Upload, CheckCircle, ArrowLeft, AlertTriangle, Loader2, LocateOff } from "lucide-react"
 import { eventsModel } from "@/features/events/model"
-import { submitCheckIn, $isCheckingIn } from "@/features/check-in/model"
+import { submitCheckInFx, $isCheckingIn } from "@/features/check-in/model"
 import { sileo } from "sileo"
 import type { Event } from "@/shared/types"
 
@@ -27,11 +27,14 @@ export function CheckInForm({ eventId }: CheckInFormProps) {
   const [comments, setComments] = useState("")
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [locationLoading, setLocationLoading] = useState(false)
+  const [locationDenied, setLocationDenied] = useState(false)
 
-  const { events, isLoading } = useUnit({
+  const { events, isCheckingIn, isEventsLoading } = useUnit({
     events: eventsModel.$events,
-    isLoading: $isCheckingIn,
+    isCheckingIn: $isCheckingIn,
+    isEventsLoading: eventsModel.$isLoading,
   })
+  const isLoading = isCheckingIn || isEventsLoading
 
   const event = events.find((e) => e.id === eventId)
 
@@ -54,6 +57,7 @@ export function CheckInForm({ eventId }: CheckInFormProps) {
         (error) => {
           console.error("Error getting location", error)
           setLocationLoading(false)
+          setLocationDenied(true)
         }
       )
     }
@@ -88,17 +92,21 @@ export function CheckInForm({ eventId }: CheckInFormProps) {
   const handleCheckIn = async () => {
     if (!selectedPhoto || !event) return
 
-    submitCheckIn({
-      eventId: event.id,
-      photo: selectedPhoto,
-      timestamp: new Date().toISOString(),
-      ...(location ? { location } : {}),
-      ...(comments ? { comments } : {}),
-    })
+    try {
+      await submitCheckInFx({
+        eventId: event.id,
+        photo: selectedPhoto,
+        timestamp: new Date().toISOString(),
+        ...(location ? { location } : {}),
+        ...(comments ? { comments } : {}),
+      })
 
-    sileo.success({ title: "Check-in exitoso", description: "Tu presentación ha sido registrada correctamente" })
-
-    router.push("/")
+      sileo.success({ title: "Check-in exitoso", description: "Tu presentación ha sido registrada correctamente" })
+      router.push("/")
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "No se pudo completar el check-in. Intenta de nuevo."
+      sileo.error({ title: "Error en check-in", description: message })
+    }
   }
 
   if (isLoading) {
@@ -180,7 +188,33 @@ export function CheckInForm({ eventId }: CheckInFormProps) {
                 </div>
               </div>
 
-              <Badge variant="outline">Hora actual: {currentTime}</Badge>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline">Hora actual: {currentTime}</Badge>
+                {locationLoading && (
+                  <Badge variant="outline" className="gap-1.5 text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Obteniendo ubicación…
+                  </Badge>
+                )}
+                {!locationLoading && location && (
+                  <a
+                    href={`https://www.google.com/maps?q=${location.lat},${location.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Badge variant="outline" className="gap-1.5 text-green-700 border-green-300 bg-green-50 cursor-pointer hover:bg-green-100 transition-colors">
+                      <MapPin className="h-3 w-3" />
+                      {location.lat.toFixed(5)}, {location.lng.toFixed(5)}
+                    </Badge>
+                  </a>
+                )}
+                {!locationLoading && locationDenied && (
+                  <Badge variant="outline" className="gap-1.5 text-muted-foreground">
+                    <LocateOff className="h-3 w-3" />
+                    Ubicación no disponible
+                  </Badge>
+                )}
+              </div>
 
               {isTimeWarning && (
                 <div className="flex items-center gap-2 p-3 bg-yellow-50 text-yellow-800 rounded-lg text-sm mt-2">

@@ -10,7 +10,11 @@ export const musicianCreated = createEvent<CreateMusicianInput>()
 export const musicianUpdated = createEvent<Musician>()
 export const musicianDeleted = createEvent<string>()
 
-export const loadMusiciansFx = createEffect<void, Musician[]>(() => musiciansApi.fetchMusicians())
+type MusiciansPage = { items: Musician[]; total: number }
+
+export const loadMusiciansFx = createEffect<void, MusiciansPage>(() => musiciansApi.fetchMusicians())
+
+export const $musiciansTotal = createStore(0).on(loadMusiciansFx.doneData, (_, data) => data.total)
 
 export const createMusicianFx = createEffect<CreateMusicianInput, Musician>((data) =>
   musiciansApi.createMusician(data),
@@ -49,13 +53,14 @@ sample({ clock: musicianCreated, target: createMusicianFx })
 sample({ clock: musicianUpdated, target: updateMusicianFx })
 sample({ clock: musicianDeleted, target: deleteMusicianFx })
 
-sample({ clock: loadMusiciansFx.doneData, target: setMusicians })
+sample({ clock: loadMusiciansFx.doneData, fn: (data) => data.items, target: setMusicians })
 sample({ clock: createMusicianFx.doneData, target: addMusician })
 sample({ clock: updateMusicianFx.doneData, target: updateMusician })
 sample({ clock: deleteMusicianFx.doneData, target: removeMusician })
 
 export const musiciansModel = {
   $musicians,
+  $musiciansTotal,
   $isLoading,
   $error,
   loadMusicians,

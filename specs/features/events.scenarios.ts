@@ -5,7 +5,7 @@
  * Update here FIRST when requirements change.
  */
 
-import { eventFixtures, allEvents } from "@/specs/fixtures"
+import { eventFixtures, allEvents, bandFixtures } from "@/specs/fixtures"
 import { userFixtures } from "@/specs/fixtures"
 
 const TODAY = "2026-04-21"
@@ -151,6 +151,129 @@ export const eventsScenarios = {
         "the conflicting event ids are returned for UI feedback",
       ],
       expectedConflictIds: [eventFixtures.todayJazz.id],
+    },
+  },
+
+  bands: {
+    "manager books a band for an event": {
+      given: { user: userFixtures.manager, band: bandFixtures.jazzTrio },
+      when: "eventCreated is triggered with bandId set and no musicianId",
+      then: [
+        "event is created with bandId = jazzTrio.id",
+        "event.band is the band display name",
+        "event.musicianId is null",
+      ],
+    },
+
+    "conflict: solo musician already booked in band at same time": {
+      given: {
+        candidate: {
+          ...eventFixtures.todayAcoustic,
+          id: "candidate-solo",
+          musicianId: "user-1", // carlos — member of jazzTrio
+          bandId: undefined,
+          time: "20:00",
+          durationMinutes: 60,
+        },
+        existing: [
+          {
+            ...eventFixtures.todayAcoustic,
+            id: "existing-band-event",
+            musicianId: undefined,
+            bandId: "band-1", // jazzTrio — has carlos as member
+            time: "20:30",
+            durationMinutes: 60,
+          },
+        ],
+        bandMemberIds: { "band-1": ["user-1", "user-4"] },
+      },
+      when: "schedule conflict validation runs",
+      then: ["conflict is detected: carlos is in jazzTrio booked at overlapping time"],
+      expectedConflictIds: ["existing-band-event"],
+    },
+
+    "conflict: band member already booked solo at same time": {
+      given: {
+        candidate: {
+          ...eventFixtures.todayAcoustic,
+          id: "candidate-band",
+          musicianId: undefined,
+          bandId: "band-1", // jazzTrio — has carlos (user-1)
+          time: "20:00",
+          durationMinutes: 60,
+        },
+        existing: [
+          {
+            ...eventFixtures.todayAcoustic,
+            id: "existing-solo",
+            musicianId: "user-1", // carlos — member of jazzTrio
+            bandId: undefined,
+            time: "20:30",
+            durationMinutes: 60,
+          },
+        ],
+        bandMemberIds: { "band-1": ["user-1", "user-4"] },
+      },
+      when: "schedule conflict validation runs",
+      then: ["conflict is detected: carlos (band member) is already booked solo at overlapping time"],
+      expectedConflictIds: ["existing-solo"],
+    },
+
+    "conflict: shared band member in two band events at same time": {
+      given: {
+        candidate: {
+          ...eventFixtures.todayAcoustic,
+          id: "candidate-band-2",
+          musicianId: undefined,
+          bandId: "band-2", // flamencoGroup — has carlos (user-1)
+          time: "20:00",
+          durationMinutes: 60,
+        },
+        existing: [
+          {
+            ...eventFixtures.todayAcoustic,
+            id: "existing-band-1",
+            musicianId: undefined,
+            bandId: "band-1", // jazzTrio — also has carlos (user-1)
+            time: "20:00",
+            durationMinutes: 60,
+          },
+        ],
+        bandMemberIds: {
+          "band-1": ["user-1", "user-4"],
+          "band-2": ["user-1", "user-5"],
+        },
+      },
+      when: "schedule conflict validation runs",
+      then: ["conflict is detected: carlos is shared member of both bands booked at same time"],
+      expectedConflictIds: ["existing-band-1"],
+    },
+
+    "no conflict: same musician, non-overlapping solo + band slots": {
+      given: {
+        candidate: {
+          ...eventFixtures.todayAcoustic,
+          id: "candidate-solo-late",
+          musicianId: "user-1", // carlos
+          bandId: undefined,
+          time: "22:00",
+          durationMinutes: 60,
+        },
+        existing: [
+          {
+            ...eventFixtures.todayAcoustic,
+            id: "existing-band-early",
+            musicianId: undefined,
+            bandId: "band-1", // jazzTrio — has carlos, ends at 21:00
+            time: "20:00",
+            durationMinutes: 60,
+          },
+        ],
+        bandMemberIds: { "band-1": ["user-1", "user-4"] },
+      },
+      when: "schedule conflict validation runs",
+      then: ["no conflict: slots do not overlap (band ends 21:00, solo starts 22:00)"],
+      expectedConflictIds: [],
     },
   },
 } as const

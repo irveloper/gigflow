@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { AlertTriangle, Plus, UserX, Users } from "lucide-react"
+import { AlertTriangle, Plus, UserX, UserCheck, Users } from "lucide-react"
 import { sileo } from "sileo"
 
 type UserRow = {
@@ -33,7 +33,10 @@ export default function AdminUsersPage() {
   const currentUser = useUnit($user)
 
   const [users, setUsers] = useState<UserRow[]>([])
+  const [usersTotal, setUsersTotal] = useState(0)
+  const [usersOffset, setUsersOffset] = useState(0)
   const [loading, setLoading] = useState(true)
+  const PAGE_SIZE = 50
   const [dialogOpen, setDialogOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
@@ -45,10 +48,16 @@ export default function AdminUsersPage() {
     phone: "",
   })
 
-  async function fetchUsers() {
+  async function fetchUsers(offset = 0) {
     try {
-      const data = await trpc.admin.listUsers.query()
-      setUsers(data)
+      const data = await trpc.admin.listUsers.query({ limit: PAGE_SIZE, offset })
+      if (offset === 0) {
+        setUsers(data.items)
+      } else {
+        setUsers((prev) => [...prev, ...data.items])
+      }
+      setUsersTotal(data.total)
+      setUsersOffset(offset)
     } catch {
       sileo.error({ title: "Error", description: "No se pudo cargar la lista de usuarios." })
     } finally {
@@ -57,7 +66,7 @@ export default function AdminUsersPage() {
   }
 
   useEffect(() => {
-    fetchUsers()
+    fetchUsers(0)
   }, [])
 
   async function handleCreate(e: React.FormEvent) {
@@ -78,7 +87,7 @@ export default function AdminUsersPage() {
       sileo.success({ title: "Usuario creado", description: `${form.name} ha sido creado correctamente.` })
       setDialogOpen(false)
       setForm({ name: "", email: "", password: "", role: "", phone: "" })
-      await fetchUsers()
+      await fetchUsers(0)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "No se pudo crear el usuario."
       sileo.error({ title: "Error", description: msg })
@@ -92,9 +101,21 @@ export default function AdminUsersPage() {
     try {
       await trpc.admin.deactivateUser.mutate({ id })
       sileo.success({ title: "Usuario desactivado", description: `${name} ha sido desactivado.` })
-      await fetchUsers()
+      await fetchUsers(0)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "No se pudo desactivar el usuario."
+      sileo.error({ title: "Error", description: msg })
+    }
+  }
+
+  async function handleReactivate(id: string, name: string) {
+    if (!confirm(`¿Reactivar la cuenta de ${name}?`)) return
+    try {
+      await trpc.admin.reactivateUser.mutate({ id })
+      sileo.success({ title: "Usuario reactivado", description: `${name} ha sido reactivado.` })
+      await fetchUsers(0)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "No se pudo reactivar el usuario."
       sileo.error({ title: "Error", description: msg })
     }
   }
@@ -254,11 +275,34 @@ export default function AdminUsersPage() {
                             Desactivar
                           </Button>
                         )}
+                        {!u.isActive && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleReactivate(u.id, u.name)}
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          >
+                            <UserCheck className="h-4 w-4 mr-1" />
+                            Reactivar
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              {users.length < usersTotal && (
+                <div className="flex justify-center pt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchUsers(usersOffset + PAGE_SIZE)}
+                    disabled={loading}
+                  >
+                    Cargar más ({users.length}/{usersTotal})
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>

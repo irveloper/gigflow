@@ -13,7 +13,8 @@ export const registerSubmitted = createEvent<{
   name: string
   role: string
   phone?: string
-  shows?: string[]
+  instruments?: string[]
+  styles?: string[]
   hotel?: string
   hourlyRate?: number
   location?: string
@@ -36,7 +37,8 @@ export const registerFx = createEffect<
     name: string
     role: string
     phone?: string
-    shows?: string[]
+    instruments?: string[]
+  styles?: string[]
     hotel?: string
     hourlyRate?: number
     location?: string
@@ -82,6 +84,7 @@ $authError
     error.message === "ROLE_PENDING" ? null : error.message,
   )
   .on(registerFx.failData, (_, error) => error.message)
+  .on(logoutFx.failData, (_, error) => error.message)
   .on(loginSubmitted, () => null)
   .on(registerSubmitted, () => null)
   .on(loginFx, () => null)

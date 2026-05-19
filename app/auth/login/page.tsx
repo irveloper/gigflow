@@ -3,7 +3,7 @@
 import type React from "react"
 import { useEffect, useState } from "react"
 import { useUnit } from "effector-react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -34,6 +34,10 @@ function getRedirectTarget(): string {
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const isVerified = searchParams.get("verified") === "1"
+  const isInviteAccepted = searchParams.get("invited") === "1"
+  const linkError = searchParams.get("error")
 
   const { isLoading, authError, user, isAuthResolved } = useUnit({
     isLoading: authModel.$isLoading,
@@ -103,6 +107,28 @@ export default function LoginPage() {
           <p className="text-gray-600 mt-2">Gestión de músicos y eventos</p>
         </div>
 
+        {/* Feedback banners */}
+        {isInviteAccepted && (
+          <div className="bg-green-50 border border-green-200 text-green-800 rounded-lg p-3 text-sm text-center">
+            ✅ ¡Cuenta activada! Inicia sesión con tu email y contraseña.
+          </div>
+        )}
+        {isVerified && (
+          <div className="bg-green-50 border border-green-200 text-green-800 rounded-lg p-3 text-sm text-center">
+            ✅ ¡Email verificado! Ya puedes iniciar sesión.
+          </div>
+        )}
+        {linkError === "invalid_token" && (
+          <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-3 text-sm text-center">
+            El enlace de verificación no es válido o ya fue usado.
+          </div>
+        )}
+        {linkError === "invalid_link" && (
+          <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-3 text-sm text-center">
+            Enlace de verificación inválido. Solicita uno nuevo.
+          </div>
+        )}
+
         {/* Login Form */}
         <Card>
           <CardHeader>
@@ -128,7 +154,12 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <Label htmlFor="password">Contraseña</Label>
+                <div className="flex items-center justify-between mb-1">
+                  <Label htmlFor="password">Contraseña</Label>
+                  <Link href="/auth/forgot-password" className="text-xs text-blue-600 hover:underline">
+                    ¿Olvidaste tu contraseña?
+                  </Link>
+                </div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input

@@ -29,7 +29,7 @@ describe("hotels model", () => {
   describe("loading", () => {
     it("loads hotels on demand", async () => {
       const scope = fork({
-        handlers: [[loadHotelsFx, () => allHotels]],
+        handlers: [[loadHotelsFx, () => ({ items: allHotels, total: allHotels.length })]],
       })
 
       await allSettled(loadHotels, { scope })
@@ -41,7 +41,7 @@ describe("hotels model", () => {
 
     it("$activeHotels reflects active subset", async () => {
       const scope = fork({
-        handlers: [[loadHotelsFx, () => allHotels]],
+        handlers: [[loadHotelsFx, () => ({ items: allHotels, total: allHotels.length })]],
       })
       await allSettled(loadHotels, { scope })
 
@@ -130,7 +130,7 @@ describe("hotels model", () => {
   describe("error handling", () => {
     it("$error is null on successful operations", async () => {
       const scope = fork({
-        handlers: [[loadHotelsFx, () => allHotels]],
+        handlers: [[loadHotelsFx, () => ({ items: allHotels, total: allHotels.length })]],
       })
       await allSettled(loadHotels, { scope })
       expect(scope.getState($error)).toBeNull()
@@ -139,7 +139,7 @@ describe("hotels model", () => {
     it("$error clears when a new operation starts", async () => {
       const scope = fork({
         values: [[$error, "previous error"]],
-        handlers: [[loadHotelsFx, () => allHotels]],
+        handlers: [[loadHotelsFx, () => ({ items: allHotels, total: allHotels.length })]],
       })
 
       await allSettled(loadHotels, { scope })

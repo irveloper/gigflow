@@ -1,0 +1,1 @@
+export { AdminBandsManager } from "./ui"

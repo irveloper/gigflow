@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useUnit } from "effector-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -34,6 +34,10 @@ export function NotificationsCenter() {
     unreadCount: notificationsModel.$unreadCount,
     isLoading: notificationsModel.$isLoading,
   })
+
+  useEffect(() => {
+    notificationsModel.loadNotifications()
+  }, [])
 
   const getNotificationIcon = (type: string) => {
     switch (type) {

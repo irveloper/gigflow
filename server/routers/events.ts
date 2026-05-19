@@ -1,8 +1,117 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
-import { router, protectedProcedure, managerProcedure } from "@/server/trpc"
+import { router, orgProcedure, managerProcedure, protectedProcedure } from "@/server/trpc"
 import { CreateEventInputSchema, EventSchema } from "@/entities/event/schema"
+import { CursorPaginationInputSchema } from "@/specs/entities/pagination.schema"
+import { eventsOverlap } from "@/entities/event/lib"
 import type { Event } from "@/shared/types"
+import type { PrismaClient } from "@prisma/client"
+
+type ConflictCheckInput = {
+  date: string
+  time: string
+  durationMinutes: number
+  musicianId?: string | null
+  bandId?: string | null
+  organizationId: string
+}
+
+/**
+ * Asserts no scheduling conflict for the given performer on the given date/time.
+ * Throws TRPCError if a conflict is found.
+ */
+async function assertNoPerformerConflict({
+  ctx,
+  input,
+  ignoreEventId,
+}: {
+  ctx: { prisma: PrismaClient }
+  input: ConflictCheckInput
+  ignoreEventId?: string
+}) {
+  if (!input.musicianId && !input.bandId) return
+
+  // Load all non-cancelled events on same date in the org
+  const existingEvents = await ctx.prisma.event.findMany({
+    where: {
+      organizationId: input.organizationId,
+      date: input.date,
+      status: { not: "cancelled" },
+      ...(ignoreEventId ? { id: { not: ignoreEventId } } : {}),
+    },
+    select: {
+      id: true,
+      time: true,
+      durationMinutes: true,
+      date: true,
+      musicianId: true,
+      bandId: true,
+    },
+  })
+
+  const candidate = { date: input.date, time: input.time, durationMinutes: input.durationMinutes }
+
+  for (const event of existingEvents) {
+    const existing = { date: event.date, time: event.time, durationMinutes: event.durationMinutes }
+    if (!eventsOverlap(candidate, existing)) continue
+
+    // Solo booking conflict checks
+    if (input.musicianId) {
+      // solo vs solo
+      if (event.musicianId === input.musicianId) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Musician is already booked at this time",
+        })
+      }
+      // solo vs band (musician is member of band in existing event)
+      if (event.bandId) {
+        const memberLink = await ctx.prisma.bandMember.findUnique({
+          where: { bandId_musicianId: { bandId: event.bandId, musicianId: input.musicianId } },
+        })
+        if (memberLink) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Musician is already performing with a band at this time",
+          })
+        }
+      }
+    }
+
+    // Band booking conflict checks
+    if (input.bandId) {
+      const candidateMembers = await ctx.prisma.bandMember.findMany({
+        where: { bandId: input.bandId },
+        select: { musicianId: true },
+      })
+      const candidateMemberIds = candidateMembers.map((m) => m.musicianId)
+
+      // band vs solo
+      if (event.musicianId && candidateMemberIds.includes(event.musicianId)) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: `A band member is already booked solo at this time`,
+        })
+      }
+
+      // band vs band (any shared member)
+      if (event.bandId) {
+        const existingMembers = await ctx.prisma.bandMember.findMany({
+          where: { bandId: event.bandId },
+          select: { musicianId: true },
+        })
+        const existingMemberIds = existingMembers.map((m) => m.musicianId)
+        const hasSharedMember = candidateMemberIds.some((id) => existingMemberIds.includes(id))
+        if (hasSharedMember) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "A band member is already performing with another band at this time",
+          })
+        }
+      }
+    }
+  }
+}
 
 function mapEvent(e: {
   id: string
@@ -15,12 +124,16 @@ function mapEvent(e: {
   hotelId: string | null
   musician: string | null
   musicianId: string | null
+  band: string | null
+  bandId: string | null
   status: string
   checkedIn: boolean
   checkInTime: Date | null
   checkInPhoto: string | null
   checkInLocation: unknown
   checkInComments: string | null
+  organizationId?: string | null
+  organization?: { name: string; slug: string } | null
 }): Event {
   return {
     id: e.id,
@@ -33,32 +146,188 @@ function mapEvent(e: {
     hotelId: e.hotelId ?? undefined,
     musician: e.musician ?? undefined,
     musicianId: e.musicianId ?? undefined,
+    band: e.band ?? undefined,
+    bandId: e.bandId ?? undefined,
     status: e.status as Event["status"],
     checkedIn: e.checkedIn,
     checkInTime: e.checkInTime?.toISOString(),
     checkInPhoto: e.checkInPhoto ?? undefined,
-    checkInLocation: e.checkInLocation as Event["checkInLocation"],
+    checkInLocation: EventSchema.shape.checkInLocation.catch(undefined).parse(e.checkInLocation ?? undefined),
     checkInComments: e.checkInComments ?? undefined,
+    organizationName: e.organization?.name,
+    organizationSlug: e.organization?.slug,
   }
 }
 
 export const eventsRouter = router({
-  getAll: protectedProcedure.query(async ({ ctx }) => {
-    const rows = await ctx.prisma.event.findMany({ orderBy: { date: "asc" } })
-    return rows.map(mapEvent)
+  /**
+   * Returns events scoped to the calling org with cursor-based pagination.
+   * Musicians: see all their own events across all orgs (cross-org view).
+   * Superadmin: no filter.
+   * Returns { items, nextCursor, total }.
+   */
+  getAll: orgProcedure.input(CursorPaginationInputSchema).query(async ({ ctx, input }) => {
+    const { role, email } = ctx.session.user
+    const { limit, cursor } = input
+
+    if (role === "musician") {
+      const musicianRecord = await ctx.prisma.musician.findUnique({ where: { email: email! } })
+      if (!musicianRecord) return { items: [], nextCursor: null, total: 0 }
+
+      // Include events where musician is solo performer OR member of booked band
+      const bandLinks = await ctx.prisma.bandMember.findMany({
+        where: { musicianId: musicianRecord.id },
+        select: { bandId: true },
+      })
+      const bandIds = bandLinks.map((l) => l.bandId)
+
+      const where = {
+        OR: [
+          { musicianId: musicianRecord.id },
+          ...(bandIds.length > 0 ? [{ bandId: { in: bandIds } }] : []),
+        ],
+      }
+      const [rows, total] = await Promise.all([
+        ctx.prisma.event.findMany({
+          where,
+          orderBy: [{ date: "asc" }, { id: "asc" }],
+          take: limit + 1,
+          ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+          include: { organization: { select: { name: true, slug: true } } },
+        }),
+        ctx.prisma.event.count({ where }),
+      ])
+
+      let nextCursor: string | null = null
+      if (rows.length > limit) {
+        nextCursor = rows[limit].id
+        rows.pop()
+      }
+      return { items: rows.map(mapEvent), nextCursor, total }
+    }
+
+    // Org-scoped for manager/hotel/superadmin
+    const where = ctx.organizationId ? { organizationId: ctx.organizationId } : {}
+    const [rows, total] = await Promise.all([
+      ctx.prisma.event.findMany({
+        where,
+        orderBy: [{ date: "asc" }, { id: "asc" }],
+        take: limit + 1,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      }),
+      ctx.prisma.event.count({ where }),
+    ])
+
+    let nextCursor: string | null = null
+    if (rows.length > limit) {
+      nextCursor = rows[limit].id
+      rows.pop()
+    }
+    return { items: rows.map(mapEvent), nextCursor, total }
   }),
 
-  getById: protectedProcedure
+  /**
+   * Returns a single event by id.
+   * Musicians: may access any event they are assigned to.
+   * Org users: restricted to their org's events.
+   */
+  getById: orgProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       const row = await ctx.prisma.event.findUnique({ where: { id: input.id } })
       if (!row) throw new TRPCError({ code: "NOT_FOUND" })
+
+      const role = ctx.session.user.role
+
+      if (role === "musician") {
+        const musicianRecord = await ctx.prisma.musician.findUnique({
+          where: { email: ctx.session.user.email! },
+        })
+        if (!musicianRecord || row.musicianId !== musicianRecord.id) {
+          throw new TRPCError({ code: "FORBIDDEN" })
+        }
+        return mapEvent(row)
+      }
+
+      if (ctx.organizationId && row.organizationId !== ctx.organizationId) {
+        throw new TRPCError({ code: "FORBIDDEN" })
+      }
+
       return mapEvent(row)
     }),
 
+  /**
+   * Create an event scoped to the calling org.
+   * Validates that the hotel and musician are both linked to the org.
+   */
   create: managerProcedure
     .input(CreateEventInputSchema)
     .mutation(async ({ ctx, input }) => {
+      if (!ctx.organizationId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "No organization context" })
+      }
+
+      if (input.musicianId && input.bandId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "An event cannot have both a solo musician and a band",
+        })
+      }
+
+      if (input.hotelId) {
+        const hotelLink = await ctx.prisma.hotelOrganization.findUnique({
+          where: {
+            hotelId_organizationId: {
+              hotelId: input.hotelId,
+              organizationId: ctx.organizationId,
+            },
+          },
+        })
+        if (!hotelLink) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Hotel not linked to your organization",
+          })
+        }
+      }
+
+      if (input.musicianId) {
+        const musicianLink = await ctx.prisma.musicianOrganization.findUnique({
+          where: {
+            musicianId_organizationId: {
+              musicianId: input.musicianId,
+              organizationId: ctx.organizationId,
+            },
+          },
+        })
+        if (!musicianLink) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Musician not linked to your organization",
+          })
+        }
+      }
+
+      if (input.bandId) {
+        const bandLink = await ctx.prisma.bandOrganization.findUnique({
+          where: {
+            bandId_organizationId: {
+              bandId: input.bandId,
+              organizationId: ctx.organizationId,
+            },
+          },
+        })
+        if (!bandLink) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Band not linked to your organization",
+          })
+        }
+      }
+
+      // Server-side scheduling conflict detection
+      await assertNoPerformerConflict({ ctx, input })
+
       const row = await ctx.prisma.event.create({
         data: {
           title: input.title,
@@ -70,7 +339,10 @@ export const eventsRouter = router({
           hotelId: input.hotelId ?? null,
           musician: input.musician ?? null,
           musicianId: input.musicianId ?? null,
+          band: input.band ?? null,
+          bandId: input.bandId ?? null,
           status: input.status,
+          organizationId: ctx.organizationId,
         },
       })
       return mapEvent(row)
@@ -79,6 +351,33 @@ export const eventsRouter = router({
   update: managerProcedure
     .input(z.object({ id: z.string(), data: EventSchema.partial() }))
     .mutation(async ({ ctx, input }) => {
+      if (!ctx.organizationId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "No organization context" })
+      }
+
+      const existing = await ctx.prisma.event.findUnique({ where: { id: input.id } })
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND" })
+      if (existing.organizationId !== ctx.organizationId) {
+        throw new TRPCError({ code: "FORBIDDEN" })
+      }
+
+      if (input.data.musicianId && input.data.bandId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "An event cannot have both a solo musician and a band",
+        })
+      }
+
+      // Merge existing event with incoming partial data to build candidate for conflict check
+      if (input.data.musicianId || input.data.bandId || input.data.date || input.data.time || input.data.durationMinutes) {
+        const merged = {
+          ...existing,
+          ...input.data,
+          organizationId: ctx.organizationId!,
+        }
+        await assertNoPerformerConflict({ ctx, input: merged, ignoreEventId: input.id })
+      }
+
       const row = await ctx.prisma.event.update({
         where: { id: input.id },
         data: {
@@ -91,6 +390,8 @@ export const eventsRouter = router({
           hotelId: input.data.hotelId ?? null,
           musician: input.data.musician ?? null,
           musicianId: input.data.musicianId ?? null,
+          band: input.data.band ?? null,
+          bandId: input.data.bandId ?? null,
           status: input.data.status,
           checkedIn: input.data.checkedIn,
           checkInTime: input.data.checkInTime ? new Date(input.data.checkInTime) : null,
@@ -105,9 +406,23 @@ export const eventsRouter = router({
   delete: managerProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      if (!ctx.organizationId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "No organization context" })
+      }
+
+      const existing = await ctx.prisma.event.findUnique({ where: { id: input.id } })
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND" })
+      if (existing.organizationId !== ctx.organizationId) {
+        throw new TRPCError({ code: "FORBIDDEN" })
+      }
+
       await ctx.prisma.event.delete({ where: { id: input.id } })
     }),
 
+  /**
+   * Check in to an event.
+   * Musicians can check in to their own events; managers to any org event.
+   */
   checkIn: protectedProcedure
     .input(
       z.object({
@@ -121,6 +436,20 @@ export const eventsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const row = await ctx.prisma.event.findUnique({ where: { id: input.eventId } })
       if (!row) throw new TRPCError({ code: "NOT_FOUND" })
+
+      const role = ctx.session.user.role
+
+      if (role === "musician") {
+        // Musician can only check in to their own events
+        const musicianRecord = await ctx.prisma.musician.findUnique({
+          where: { email: ctx.session.user.email! },
+        })
+        if (!musicianRecord || row.musicianId !== musicianRecord.id) {
+          throw new TRPCError({ code: "FORBIDDEN" })
+        }
+      } else if (ctx.organizationId && row.organizationId !== ctx.organizationId) {
+        throw new TRPCError({ code: "FORBIDDEN" })
+      }
 
       const updated = await ctx.prisma.event.update({
         where: { id: input.eventId },

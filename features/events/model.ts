@@ -31,7 +31,12 @@ export const rejectCheckIn = createEvent<string>()
 // ---------------------------------------------------------------------------
 // Effects
 // ---------------------------------------------------------------------------
-export const loadEventsFx = createEffect<void, Event[]>(() => eventsApi.fetchEvents())
+type EventsPage = { items: Event[]; nextCursor: string | null; total: number }
+
+export const loadEventsFx = createEffect<void, EventsPage>(() => eventsApi.fetchEvents())
+
+/** Total event count (from last fetch) */
+export const $eventsTotal = createStore(0).on(loadEventsFx.doneData, (_, data) => data.total)
 
 export const $isLoading = createStore(false).on(loadEventsFx.pending, (_, pending) => pending)
 
@@ -42,7 +47,7 @@ export const createEventFx = createEffect<CreateEventInput, Event>((input) => ev
 export const deleteEventFx = createEffect<string, void>((id) => eventsApi.deleteEvent(id))
 
 sample({ clock: loadEvents, target: loadEventsFx })
-sample({ clock: loadEventsFx.doneData, target: setEvents })
+sample({ clock: loadEventsFx.doneData, fn: (data) => data.items, target: setEvents })
 sample({ clock: eventCreated, target: createEventFx })
 sample({ clock: createEventFx.doneData, target: addEvent })
 sample({ clock: updateEvent, target: updateEventById })
@@ -111,6 +116,7 @@ export const eventsModel = {
   $upcomingEvents,
   $pendingCheckIns,
   $isLoading,
+  $eventsTotal,
   loadEvents,
   eventCreated,
   updateEvent,

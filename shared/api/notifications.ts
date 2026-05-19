@@ -4,8 +4,8 @@ import { trpc } from "@/shared/lib/trpc"
 // Phase 1: tRPC → mock data in server/routers/notifications.ts
 // Phase 4: server/routers/notifications.ts replaced with Supabase queries
 
-export async function fetchNotifications(userId: string): Promise<Notification[]> {
-  return trpc.notifications.getAll.query({ userId })
+export async function fetchNotifications(): Promise<Notification[]> {
+  return trpc.notifications.getAll.query({})
 }
 
 export async function markNotificationRead(id: string): Promise<void> {

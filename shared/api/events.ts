@@ -1,11 +1,8 @@
 import type { Event, CreateEventInput } from "@/shared/types"
 import { trpc } from "@/shared/lib/trpc"
 
-// Phase 1: tRPC → mock data in server/routers/events.ts
-// Phase 4: server/routers/events.ts replaced with Supabase queries
-
-export async function fetchEvents(): Promise<Event[]> {
-  return trpc.events.getAll.query()
+export async function fetchEvents(opts?: { limit?: number; cursor?: string }): Promise<{ items: Event[]; nextCursor: string | null; total: number }> {
+  return trpc.events.getAll.query(opts ?? {})
 }
 
 export async function createEvent(input: CreateEventInput): Promise<Event> {

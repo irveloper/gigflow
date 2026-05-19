@@ -6,6 +6,7 @@ import { SessionProvider } from "next-auth/react"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "sileo"
 import { authModel } from "@/features/auth/model"
+import "@/features/org/model"
 
 export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {

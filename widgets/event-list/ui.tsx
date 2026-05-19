@@ -35,23 +35,29 @@ export function TodayEventsCard() {
             <p>No hay eventos para hoy</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {events.map((event) => (
-              <div key={event.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">{event.title}</h3>
-                  <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
+              <div key={event.id} className="flex flex-col gap-2 p-4 bg-gray-50 rounded-lg sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-gray-900 truncate">{event.title}</h3>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-600">
+                    <span className="flex items-center gap-1 shrink-0">
+                      <Clock className="h-3.5 w-3.5" />
                       {event.time}
                     </span>
-                    <span className="flex items-center gap-1">
-                      <MapPin className="h-4 w-4" />
-                      {event.hotel}
+                    <span className="flex items-center gap-1 min-w-0">
+                      <MapPin className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{event.hotel}</span>
                     </span>
+                    {(event.musician ?? event.band) && (
+                      <span className="truncate">{event.musician ?? event.band}</span>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+                  {user?.role === "musician" && event.organizationName && (
+                    <Badge variant="outline" className="text-xs">{event.organizationName}</Badge>
+                  )}
                   <Badge variant={event.status === "scheduled" ? "default" : "secondary"}>
                     {event.status === "scheduled" ? "Programado" : "En Progreso"}
                   </Badge>
@@ -71,7 +77,7 @@ export function TodayEventsCard() {
 }
 
 export function UpcomingEventsCard() {
-  const events = useUnit(eventsModel.$upcomingEvents)
+  const { events, user } = useUnit({ events: eventsModel.$upcomingEvents, user: $user })
   const upcoming = events.slice(0, 3)
 
   return (
@@ -90,24 +96,34 @@ export function UpcomingEventsCard() {
             <p>No hay eventos próximos</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {upcoming.map((event) => (
-              <div key={event.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">{event.title}</h3>
-                  <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
-                    <span>{new Date(event.date).toLocaleDateString("es-ES")}</span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
+              <div key={event.id} className="flex flex-col gap-2 p-4 bg-gray-50 rounded-lg sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-gray-900 truncate">{event.title}</h3>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-600">
+                    <span className="shrink-0">{new Date(event.date).toLocaleDateString("es-ES")}</span>
+                    <span className="flex items-center gap-1 shrink-0">
+                      <Clock className="h-3.5 w-3.5" />
                       {event.time}
                     </span>
-                    <span className="flex items-center gap-1">
-                      <MapPin className="h-4 w-4" />
-                      {event.hotel}
+                    <span className="flex items-center gap-1 min-w-0">
+                      <MapPin className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{event.hotel}</span>
                     </span>
+                    {(event.musician ?? event.band) && (
+                      <span className="truncate">{event.musician ?? event.band}</span>
+                    )}
                   </div>
                 </div>
-                <Badge variant="outline">{event.status === "scheduled" ? "Programado" : event.status}</Badge>
+                <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+                  {user?.role === "musician" && event.organizationName && (
+                    <Badge variant="outline" className="text-xs">{event.organizationName}</Badge>
+                  )}
+                  <Badge variant="outline">
+                    {event.status === "scheduled" ? "Programado" : event.status}
+                  </Badge>
+                </div>
               </div>
             ))}
           </div>

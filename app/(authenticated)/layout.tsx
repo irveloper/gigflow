@@ -6,6 +6,7 @@ import { useUnit } from "effector-react"
 import { useRouter, usePathname } from "next/navigation"
 import Loading from "./loading"
 import { authModel } from "@/features/auth/model"
+import { Navigation } from "@/widgets/navigation"
 
 /**
  * Client-side auth guard for all authenticated routes.
@@ -34,5 +35,10 @@ export default function AuthenticatedLayout({ children }: { children: ReactNode 
     return <Loading />
   }
 
-  return <>{children}</>
+  return (
+    <>
+      <Navigation />
+      {children}
+    </>
+  )
 }

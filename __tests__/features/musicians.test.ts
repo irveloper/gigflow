@@ -27,7 +27,7 @@ describe("musicians model", () => {
   describe("loading", () => {
     it("loads musicians on demand", async () => {
       const scope = fork({
-        handlers: [[loadMusiciansFx, () => allMusicians]],
+        handlers: [[loadMusiciansFx, () => ({ items: allMusicians, total: allMusicians.length })]],
       })
 
       await allSettled(loadMusicians, { scope })
@@ -44,7 +44,8 @@ describe("musicians model", () => {
         name: "Lucia Torres",
         email: "lucia@test.com",
         phone: "+52 998 555 0000",
-        shows: ["Soul Night"],
+        instruments: ["Voice"],
+        styles: ["Soul", "R&B"],
         hourlyRate: 950,
         isActive: true,
       }
@@ -101,7 +102,7 @@ describe("musicians model", () => {
   describe("error handling", () => {
     it("$error is null after successful load", async () => {
       const scope = fork({
-        handlers: [[loadMusiciansFx, () => allMusicians]],
+        handlers: [[loadMusiciansFx, () => ({ items: allMusicians, total: allMusicians.length })]],
       })
       await allSettled(loadMusicians, { scope })
       expect(scope.getState($error)).toBeNull()
@@ -110,7 +111,7 @@ describe("musicians model", () => {
     it("$error clears when a new operation starts", async () => {
       const scope = fork({
         values: [[$error, "previous error"]],
-        handlers: [[loadMusiciansFx, () => allMusicians]],
+        handlers: [[loadMusiciansFx, () => ({ items: allMusicians, total: allMusicians.length })]],
       })
 
       await allSettled(loadMusicians, { scope })

@@ -23,6 +23,8 @@ export default defineConfig({
       ".next",
       // scenario files are living docs, not test runners
       "specs/features/**/*.scenarios.ts",
+      // integration tests require a real database — run via pnpm test:integration
+      "__tests__/api/**",
     ],
     coverage: {
       provider: "v8",

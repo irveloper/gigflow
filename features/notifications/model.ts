@@ -34,7 +34,7 @@ export const addNotification = createEvent<CreateNotificationInput>()
 // Effects
 // ---------------------------------------------------------------------------
 export const loadNotificationsFx = createEffect<void, Notification[]>(() =>
-  notificationsApi.fetchNotifications("current-user"),
+  notificationsApi.fetchNotifications(),
 )
 
 export const markAsReadFx = createEffect<string, void>((id) => notificationsApi.markNotificationRead(id))

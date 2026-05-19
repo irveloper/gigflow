@@ -10,8 +10,10 @@ export const userFixtures = {
     role: "musician",
     avatar: "/placeholder-user.jpg",
     phone: "+52 998 123 4567",
-    shows: ["Acoustic Set", "Jazz Trio", "Solo Piano"],
+    instruments: ["Acoustic Set", "Jazz Trio", "Solo Piano"],
+    styles: ["jazz", "acoustic"],
     hourlyRate: 800,
+    musicianId: "user-1",
     createdAt: NOW,
   },
   manager: {
@@ -22,6 +24,8 @@ export const userFixtures = {
     avatar: "/placeholder-user.jpg",
     phone: "+52 998 765 4321",
     createdAt: NOW,
+    organizationId: "org-1",
+    organizationSlug: "plugin-cancun",
   },
   hotel: {
     id: "user-3",
@@ -31,6 +35,7 @@ export const userFixtures = {
     avatar: "/placeholder-logo.png",
     phone: "+52 998 888 0000",
     hotel: "Paradisus Cancun",
+    hotelId: "seed-hotel-1",
     location: "Cancun, Mexico",
     contactPerson: "Roberto Martinez",
     createdAt: NOW,

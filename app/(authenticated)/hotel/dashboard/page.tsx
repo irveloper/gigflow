@@ -16,9 +16,11 @@ export default function HotelDashboardPage() {
   const user = useUnit($user)
   const events = useUnit(eventsModel.$events)
 
+  const today = new Date().toISOString().split("T")[0]
+
   const [filters, setFilters] = useState({
-    dateFrom: "",
-    dateTo: "",
+    dateFrom: today,
+    dateTo: today,
     musician: "",
     status: "",
     search: "",
@@ -93,8 +95,8 @@ export default function HotelDashboardPage() {
 
   const clearFilters = () => {
     setFilters({
-      dateFrom: "",
-      dateTo: "",
+      dateFrom: today,
+      dateTo: today,
       musician: "",
       status: "",
       search: "",

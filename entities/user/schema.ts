@@ -10,13 +10,19 @@ export const UserSchema = z.object({
   avatar: z.string().optional(),
   phone: z.string().optional(),
   // musician-specific
-  shows: z.array(z.string()).optional(),
+  instruments: z.array(z.string()).optional(),
+  styles: z.array(z.string()).optional(),
   hourlyRate: z.number().positive().optional(),
+  musicianId: z.string().optional(),
   // hotel-specific
   hotel: z.string().optional(),
+  hotelId: z.string().optional(),
   location: z.string().optional(),
   contactPerson: z.string().optional(),
   isActive: z.boolean().optional(),
+  // org membership
+  organizationId: z.string().optional(),
+  organizationSlug: z.string().optional(),
   createdAt: z.string().datetime({ offset: true }),
 })
 
@@ -32,7 +38,8 @@ export const RegisterInputSchema = z.object({
   role: UserRoleSchema,
   phone: z.string().optional(),
   // musician-specific
-  shows: z.array(z.string()).optional(),
+  instruments: z.array(z.string()).optional(),
+  styles: z.array(z.string()).optional(),
   hourlyRate: z.number().positive().optional(),
   // hotel-specific
   hotel: z.string().optional(),

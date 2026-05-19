@@ -58,7 +58,7 @@ export const authScenarios = {
         password: DEMO_PASSWORD,
         name: "Nueva Musica",
         role: "musician",
-        shows: ["Jazz"],
+        instruments: ["Jazz"],
         hourlyRate: 700,
       },
       when: "registerSubmitted is triggered",
@@ -71,6 +71,24 @@ export const authScenarios = {
       given: "user is logged in",
       when: "logout event is triggered",
       then: ["$user is null", "auth cookie is cleared", "localStorage user entry is removed"],
+    },
+  },
+
+  orgSlug: {
+    "org user has organizationSlug after checkAuth resolves": {
+      given: "session contains a user with organizationSlug set",
+      when: "checkAuth is triggered and checkAuthFx resolves",
+      then: [
+        "$user.organizationSlug equals the slug from the session",
+        "nav prefix can be derived without waiting for loadMyOrgFx",
+      ],
+      expectedUser: "userFixtures.manager (has organizationSlug: 'plugin-cancun')",
+    },
+
+    "non-org user has no organizationSlug after checkAuth resolves": {
+      given: "session contains a user without organizationSlug (superadmin or pending)",
+      when: "checkAuth is triggered and checkAuthFx resolves",
+      then: ["$user.organizationSlug is undefined", "nav prefix stays empty string"],
     },
   },
 

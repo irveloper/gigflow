@@ -5,18 +5,20 @@ import { PrismaAdapter } from "@auth/prisma-adapter"
 import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
 import { LoginInputSchema } from "@/entities/user/schema"
+import { headers } from "next/headers"
+
+import authConfig from "./auth.config"
 
 export const {
   handlers: { GET, POST },
   auth,
   signIn,
   signOut,
+  unstable_update,
 } = NextAuth({
+  ...authConfig,
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
-  pages: {
-    signIn: "/auth/login",
-  },
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -28,15 +30,46 @@ export const {
         const parsed = LoginInputSchema.safeParse(credentials)
         if (!parsed.success) return null
 
+        // Capture IP for audit log — available via next/headers in Next.js 15+
+        let ipAddress: string | null = null
+        let userAgent: string | null = null
+        try {
+          const hdrs = await headers()
+          ipAddress = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? hdrs.get("x-real-ip") ?? null
+          userAgent = hdrs.get("user-agent")
+        } catch {
+          // headers() may throw outside request context (e.g. tests)
+        }
+
         const dbUser = await prisma.user.findUnique({
           where: { email: parsed.data.email },
+          include: {
+            organization: { select: { id: true, slug: true } },
+            musician: { select: { id: true } },
+          },
         })
-        if (!dbUser?.password) return null
+
+        const logFailure = async () => {
+          try {
+            await prisma.loginAuditLog.create({
+              data: { email: parsed.data.email, userId: dbUser?.id ?? null, outcome: "failure", ipAddress, userAgent },
+            })
+          } catch { /* non-critical */ }
+        }
+
+        if (!dbUser?.password) { await logFailure(); return null }
 
         const valid = await bcrypt.compare(parsed.data.password, dbUser.password)
-        if (!valid) return null
+        if (!valid) { await logFailure(); return null }
 
-        if (!dbUser.isActive) return null
+        if (!dbUser.isActive) { await logFailure(); return null }
+
+        // Log success
+        try {
+          await prisma.loginAuditLog.create({
+            data: { email: dbUser.email, userId: dbUser.id, outcome: "success", ipAddress, userAgent },
+          })
+        } catch { /* non-critical */ }
 
         return {
           id: dbUser.id,
@@ -44,59 +77,22 @@ export const {
           email: dbUser.email,
           role: dbUser.role ?? undefined,
           isActive: dbUser.isActive,
+          emailVerified: dbUser.emailVerified !== null,
           phone: dbUser.phone ?? undefined,
-          shows: dbUser.shows,
+          instruments: dbUser.instruments,
+          styles: dbUser.styles,
           hourlyRate: dbUser.hourlyRate ?? undefined,
           location: dbUser.location ?? undefined,
           contactPerson: dbUser.contactPerson ?? undefined,
           hotelId: dbUser.hotelId ?? undefined,
           createdAt: dbUser.createdAt.toISOString(),
+          organizationId: dbUser.organizationId ?? undefined,
+          organizationSlug: dbUser.organization?.slug ?? undefined,
+          musicianId: dbUser.musician?.id ?? undefined,
         }
       },
     }),
   ],
-  callbacks: {
-    jwt({ token, user }) {
-      if (user) {
-        const u = user as unknown as {
-          id: string
-          role?: string
-          isActive: boolean
-          phone?: string
-          shows: string[]
-          hourlyRate?: number
-          location?: string
-          contactPerson?: string
-          hotelId?: string
-          createdAt: string
-        }
-        token.id = u.id
-        token.role = u.role
-        token.isActive = u.isActive
-        token.phone = u.phone
-        token.shows = u.shows ?? []
-        token.hourlyRate = u.hourlyRate
-        token.location = u.location
-        token.contactPerson = u.contactPerson
-        token.hotelId = u.hotelId
-        token.createdAt = u.createdAt
-      }
-      return token
-    },
-    session({ session, token }) {
-      session.user.id = token.id
-      session.user.role = token.role
-      session.user.isActive = token.isActive
-      session.user.phone = token.phone
-      session.user.shows = token.shows ?? []
-      session.user.hourlyRate = token.hourlyRate
-      session.user.location = token.location
-      session.user.contactPerson = token.contactPerson
-      session.user.hotelId = token.hotelId
-      session.user.createdAt = token.createdAt
-      return session
-    },
-  },
 })
 
 export { sessionToUser } from "@/shared/lib/session"

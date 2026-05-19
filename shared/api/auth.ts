@@ -14,7 +14,7 @@ export async function login({ email, password }: LoginInput): Promise<User> {
 }
 
 export async function logout(): Promise<void> {
-  await signOut({ redirect: false })
+  await signOut({ redirectTo: '/auth/login' })
 }
 
 async function getSessionUser(): Promise<User> {

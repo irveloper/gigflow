@@ -4,8 +4,8 @@ import { trpc } from "@/shared/lib/trpc"
 // Phase 1: tRPC → mock data in server/routers/hotels.ts
 // Phase 4: server/routers/hotels.ts replaced with Supabase queries
 
-export async function fetchHotels(): Promise<Hotel[]> {
-  return trpc.hotels.getAll.query()
+export async function fetchHotels(opts?: { limit?: number; offset?: number }): Promise<{ items: Hotel[]; total: number }> {
+  return trpc.hotels.getAll.query(opts ?? {})
 }
 
 export async function createHotel(input: CreateHotelInput): Promise<Hotel> {

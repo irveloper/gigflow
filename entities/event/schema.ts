@@ -17,14 +17,19 @@ export const EventSchema = z.object({
   durationMinutes: DurationMinutes,
   hotel: z.string().min(1),       // display name
   hotelId: z.string().optional(), // relation key
-  musician: z.string().optional(),   // display name
-  musicianId: z.string().optional(), // relation key
+  musician: z.string().optional(),   // display name (solo)
+  musicianId: z.string().optional(), // relation key (solo)
+  band: z.string().optional(),       // display name (band booking)
+  bandId: z.string().optional(),     // relation key (band booking)
   status: EventStatusSchema,
   checkedIn: z.boolean().default(false),
   checkInTime: z.string().optional(),
   checkInPhoto: z.string().optional(),
   checkInLocation: z.object({ lat: z.number(), lng: z.number() }).optional(),
   checkInComments: z.string().optional(),
+  // Populated for musician cross-org view
+  organizationName: z.string().optional(),
+  organizationSlug: z.string().optional(),
 })
 
 export const CreateEventInputSchema = EventSchema.omit({ id: true, checkedIn: true, checkInTime: true, checkInPhoto: true, checkInLocation: true, checkInComments: true })

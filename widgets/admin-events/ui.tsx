@@ -34,6 +34,7 @@ import { getEventTimeLabel, getSchedulingConflicts, getEventStatusLabel, getCale
 import { eventsModel } from "@/features/events"
 import { hotelsModel } from "@/features/hotels"
 import { musiciansModel } from "@/features/musicians"
+import { bandsModel } from "@/features/bands"
 import { $user } from "@/entities/user/model"
 import { sileo } from "sileo"
 
@@ -52,7 +53,7 @@ const TONE_TO_VARIANT: Record<string, "default" | "secondary" | "destructive" | 
 const EMPTY_FORM = {
   title: "", description: "", date: "", time: "",
   durationMinutes: "120",
-  hotelId: "", musicianId: "", concept: "",
+  hotelId: "", musicianId: "", bandId: "", performerType: "solo" as "solo" | "band", concept: "",
 }
 
 type FormState = typeof EMPTY_FORM
@@ -66,6 +67,8 @@ function eventToForm(event: Event): FormState {
     durationMinutes: String(event.durationMinutes),
     hotelId: event.hotelId ?? "",
     musicianId: event.musicianId ?? "",
+    bandId: event.bandId ?? "",
+    performerType: event.bandId ? "band" : "solo",
     concept: "",
   }
 }
@@ -75,6 +78,7 @@ export function AdminEventsManager() {
   const { events } = useUnit({ events: eventsModel.$events })
   const { hotels } = useUnit({ hotels: hotelsModel.$hotels })
   const { musicians } = useUnit({ musicians: musiciansModel.$musicians })
+  const { bands } = useUnit({ bands: bandsModel.$bands })
   const { pendingCheckIns } = useUnit({ pendingCheckIns: eventsModel.$pendingCheckIns })
   const { isLoading } = useUnit({ isLoading: eventsModel.$isLoading })
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -91,17 +95,21 @@ export function AdminEventsManager() {
     eventsModel.loadEvents()
     hotelsModel.loadHotels()
     musiciansModel.loadMusicians()
+    bandsModel.loadBands()
   }, [])
 
   const handleCreate = () => {
-    const { title, date, time, hotelId, musicianId, durationMinutes } = formData
-    if (!title || !date || !time || !hotelId || !musicianId || !durationMinutes) {
+    const { title, date, time, hotelId, musicianId, bandId, performerType, durationMinutes } = formData
+    const hasPerformer = performerType === "solo" ? !!musicianId : !!bandId
+    if (!title || !date || !time || !hotelId || !hasPerformer || !durationMinutes) {
       sileo.error({ title: "Error", description: "Completa todos los campos obligatorios" })
       return
     }
 
     const hotel = hotels.find((h) => h.id === hotelId)
-    const musician = musicians.find((m) => m.id === musicianId)
+    const musician = performerType === "solo" ? musicians.find((m) => m.id === musicianId) : undefined
+    const band = performerType === "band" ? bands.find((b) => b.id === bandId) : undefined
+    const performerName = musician?.name ?? band?.name
 
     const candidateEvent: CreateEventInput = {
       title,
@@ -111,8 +119,7 @@ export function AdminEventsManager() {
       durationMinutes: Number(durationMinutes),
       hotel: hotel?.name ?? "",
       hotelId,
-      musician: musician?.name,
-      musicianId,
+      ...(performerType === "solo" ? { musician: musician?.name, musicianId } : { band: band?.name, bandId }),
       status: "scheduled",
     }
 
@@ -122,12 +129,12 @@ export function AdminEventsManager() {
     })
 
     if (conflicts.length > 0) {
-      setFormConflict(`${musician?.name} ya tiene un evento que se cruza con este horario`)
+      setFormConflict(`${performerName} ya tiene un evento que se cruza con este horario`)
       return
     }
 
     eventsModel.eventCreated(candidateEvent)
-    sileo.success({ title: "Evento Creado", description: `Asignado a ${musician?.name}` })
+    sileo.success({ title: "Evento Creado", description: `Asignado a ${performerName}` })
     setFormData(EMPTY_FORM)
     setFormConflict(null)
     setIsCreateOpen(false)
@@ -135,14 +142,17 @@ export function AdminEventsManager() {
 
   const handleSaveEdit = () => {
     if (!eventToEdit) return
-    const { title, date, time, hotelId, musicianId, durationMinutes } = formData
-    if (!title || !date || !time || !hotelId || !musicianId || !durationMinutes) {
+    const { title, date, time, hotelId, musicianId, bandId, performerType, durationMinutes } = formData
+    const hasPerformer = performerType === "solo" ? !!musicianId : !!bandId
+    if (!title || !date || !time || !hotelId || !hasPerformer || !durationMinutes) {
       sileo.error({ title: "Error", description: "Completa todos los campos obligatorios" })
       return
     }
 
     const hotel = hotels.find((h) => h.id === hotelId)
-    const musician = musicians.find((m) => m.id === musicianId)
+    const musician = performerType === "solo" ? musicians.find((m) => m.id === musicianId) : undefined
+    const band = performerType === "band" ? bands.find((b) => b.id === bandId) : undefined
+    const performerName = musician?.name ?? band?.name
 
     const updated: Event = {
       ...eventToEdit,
@@ -153,8 +163,9 @@ export function AdminEventsManager() {
       durationMinutes: Number(durationMinutes),
       hotel: hotel?.name ?? eventToEdit.hotel,
       hotelId,
-      musician: musician?.name ?? eventToEdit.musician,
-      musicianId,
+      ...(performerType === "solo"
+        ? { musician: musician?.name ?? eventToEdit.musician, musicianId, band: undefined, bandId: undefined }
+        : { band: band?.name ?? eventToEdit.band, bandId, musician: undefined, musicianId: undefined }),
     }
 
     const conflicts = getSchedulingConflicts({
@@ -164,7 +175,7 @@ export function AdminEventsManager() {
     })
 
     if (conflicts.length > 0) {
-      setEditConflict(`${musician?.name} ya tiene un evento que se cruza con este horario`)
+      setEditConflict(`${performerName} ya tiene un evento que se cruza con este horario`)
       return
     }
 
@@ -233,12 +244,43 @@ export function AdminEventsManager() {
           <SelectContent>{hotels.map((h) => <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>)}</SelectContent>
         </Select>
       </div>
-      <div>
-        <Label htmlFor="musician">Músico *</Label>
-        <Select value={formData.musicianId} onValueChange={(v) => setFormData({ ...formData, musicianId: v })} disabled={disabled}>
-          <SelectTrigger><SelectValue placeholder="Asignar músico" /></SelectTrigger>
-          <SelectContent>{musicians.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
-        </Select>
+      <div className="md:col-span-2 space-y-3">
+        <Label>Intérprete *</Label>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant={formData.performerType === "solo" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFormData({ ...formData, performerType: "solo", bandId: "" })}
+            disabled={disabled}
+          >
+            Músico Solo
+          </Button>
+          <Button
+            type="button"
+            variant={formData.performerType === "band" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFormData({ ...formData, performerType: "band", musicianId: "" })}
+            disabled={disabled}
+          >
+            Banda
+          </Button>
+        </div>
+        {formData.performerType === "solo" ? (
+          <Select value={formData.musicianId} onValueChange={(v) => setFormData({ ...formData, musicianId: v })} disabled={disabled}>
+            <SelectTrigger><SelectValue placeholder="Seleccionar músico" /></SelectTrigger>
+            <SelectContent>{musicians.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
+          </Select>
+        ) : (
+          <Select value={formData.bandId} onValueChange={(v) => setFormData({ ...formData, bandId: v })} disabled={disabled}>
+            <SelectTrigger><SelectValue placeholder="Seleccionar banda" /></SelectTrigger>
+            <SelectContent>
+              {bands.filter((b) => b.isActive).map((b) => (
+                <SelectItem key={b.id} value={b.id}>{b.name}{b.genre ? ` — ${b.genre}` : ""}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
       <div className="md:col-span-2">
         <Label htmlFor="description">Descripción</Label>

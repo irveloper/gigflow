@@ -20,12 +20,17 @@ import {
   markAsRead,
   markAllAsRead,
 } from "@/features/notifications/model"
+import { $organization } from "@/entities/organization/model"
 
 export function NotificationsDropdown() {
-  const { notifications, unreadCount } = useUnit({
+  const { notifications, unreadCount, organization } = useUnit({
     notifications: $notifications,
     unreadCount: $unreadCount,
+    organization: $organization,
   })
+  const notificationsHref = organization?.slug
+    ? `/org/${organization.slug}/notifications`
+    : "/notifications"
 
   useEffect(() => {
     loadNotifications()
@@ -120,7 +125,7 @@ export function NotificationsDropdown() {
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <a href="/notifications" className="text-center text-sm text-blue-600 cursor-pointer">
+              <a href={notificationsHref} className="text-center text-sm text-blue-600 cursor-pointer">
                 Ver todas las notificaciones
               </a>
             </DropdownMenuItem>

@@ -15,21 +15,31 @@ model User {
   emailVerified DateTime?
   image         String?
   password      String?   // bcrypt hash — null for OAuth-only accounts
-  role          String?   // 'musician' | 'manager' | 'hotel' | null = pending assignment
-  isActive      Boolean   @default(true)
-  phone         String?
-  shows         String[]  @default([])
-  hourlyRate    Float?
+  role           String?   // 'musician' | 'manager' | 'hotel' | 'superadmin' | null = pending assignment
+  isActive       Boolean   @default(true)
+  phone          String?
+  instruments    String[]  @default([])
+  styles         String[]  @default([])
+  hourlyRate     Float?
   // hotel-specific
-  location      String?
-  contactPerson String?
-  hotelId       String?
-  createdAt     DateTime  @default(now())
+  location       String?
+  contactPerson  String?
+  hotelId        String?
+  // org membership — null for pending users and superadmin
+  organizationId String?
+  // musician record link — set for users with role = 'musician'
+  musicianId     String?   @unique
+  createdAt      DateTime  @default(now())
 
   hotel         Hotel?         @relation(fields: [hotelId], references: [id])
-  notifications Notification[]
-  accounts      Account[]
-  sessions      Session[]
+  organization  Organization?  @relation(fields: [organizationId], references: [id])
+  musician      Musician?      @relation(fields: [musicianId], references: [id])
+  notifications       Notification[]
+  accounts            Account[]
+  sessions            Session[]
+  passwordResetTokens PasswordResetToken[]
+
+  @@index([organizationId])
 }
 
 model Account {
@@ -68,20 +78,149 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+// ─── Organization (top-level SaaS tenant) ────────────────────────────────────
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique  // URL-safe identifier, e.g. "sonidos-del-mar"
+  status    String   @default("active")  // 'trialing' | 'active' | 'past_due' | 'suspended' | 'canceled'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users           User[]
+  hotels          HotelOrganization[]
+  musicians       MusicianOrganization[]
+  bands           BandOrganization[]
+  events          Event[]
+  subscription    Subscription?
+  musicianInvites MusicianInvite[]
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  organizationId       String    @unique
+  stripeCustomerId     String    @unique
+  stripeSubscriptionId String?   @unique
+  stripePriceId        String?
+  // trialing | active | past_due | suspended | canceled
+  status               String    @default("trialing")
+  trialEndsAt          DateTime?
+  currentPeriodEnd     DateTime?
+  seatLimit            Int       @default(3)
+  cancelAtPeriodEnd    Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([stripeCustomerId])
+  @@index([stripeSubscriptionId])
+}
+
+// Explicit many-to-many: Hotel ↔ Organization
+// Stores org-specific contact info alongside the shared hotel record
+model HotelOrganization {
+  hotelId        String
+  organizationId String
+  contactPerson  String?
+  contactPhone   String?
+
+  hotel        Hotel        @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@id([hotelId, organizationId])
+}
+
+// Explicit many-to-many: Musician ↔ Organization
+model MusicianOrganization {
+  musicianId     String
+  organizationId String
+
+  musician     Musician     @relation(fields: [musicianId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@id([musicianId, organizationId])
+}
+
+// ─── Band ─────────────────────────────────────────────────────────────────────
+
+model Band {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  genre       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  members       BandMember[]
+  organizations BandOrganization[]
+  events        Event[]
+
+  @@index([isActive])
+}
+
+// Explicit many-to-many: Musician ↔ Band
+model BandMember {
+  bandId     String
+  musicianId String
+
+  band     Band     @relation(fields: [bandId], references: [id], onDelete: Cascade)
+  musician Musician @relation(fields: [musicianId], references: [id], onDelete: Cascade)
+
+  @@id([bandId, musicianId])
+}
+
+// Explicit many-to-many: Band ↔ Organization
+model BandOrganization {
+  bandId         String
+  organizationId String
+
+  band         Band         @relation(fields: [bandId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@id([bandId, organizationId])
+}
+
 // ─── Domain models ────────────────────────────────────────────────────────────
 
 model Musician {
-  id         String   @id @default(cuid())
-  name       String
-  email      String   @unique
-  phone      String
-  shows      String[] @default([])
-  hourlyRate Float
-  isActive   Boolean  @default(true)
-  avatar     String?
-  createdAt  DateTime @default(now())
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @unique
+  phone       String
+  instruments String[] @default([])
+  styles      String[] @default([])
+  hourlyRate  Float
+  isActive    Boolean  @default(true)
+  avatar      String?
+  createdAt   DateTime @default(now())
 
-  events Event[]
+  events        Event[]
+  organizations MusicianOrganization[]
+  bands         BandMember[]
+  userAccount   User?
+  invites       MusicianInvite[]
+
+  @@index([isActive])
+}
+
+/// Portal invite sent by a manager to a musician.
+/// Token is single-use and expires in 72 hours.
+model MusicianInvite {
+  id             String    @id @default(cuid())
+  musicianId     String
+  organizationId String
+  email          String                   // musician email at invite time
+  token          String    @unique
+  expires        DateTime
+  usedAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  musician     Musician     @relation(fields: [musicianId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([musicianId])
 }
 
 model Hotel {
@@ -95,8 +234,11 @@ model Hotel {
   avatar        String?
   createdAt     DateTime @default(now())
 
-  events Event[]
-  users  User[]
+  events        Event[]
+  users         User[]
+  organizations HotelOrganization[]
+
+  @@index([isActive])
 }
 
 model Event {
@@ -108,19 +250,53 @@ model Event {
   durationMinutes Int
   hotel           String    // denormalized display name
   hotelId         String?
-  musician        String?   // denormalized display name
+  musician        String?   // denormalized display name (solo)
   musicianId      String?
+  band            String?   // denormalized display name (band booking)
+  bandId          String?
   status          String    @default("scheduled")
   checkedIn       Boolean   @default(false)
   checkInTime     DateTime?
   checkInPhoto    String?
   checkInLocation Json?     // { lat: Float, lng: Float }
   checkInComments String?
+  // org tenant — backfilled and non-nullable after migration 20260517000000
+  organizationId  String
   createdAt       DateTime  @default(now())
 
   hotelRel      Hotel?         @relation(fields: [hotelId], references: [id])
   musicianRel   Musician?      @relation(fields: [musicianId], references: [id])
+  bandRel       Band?          @relation(fields: [bandId], references: [id])
+  organization  Organization   @relation(fields: [organizationId], references: [id])
   notifications Notification[]
+
+  @@index([organizationId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  token     String    @unique
+  expires   DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model LoginAuditLog {
+  id        String   @id @default(cuid())
+  email     String
+  userId    String?
+  outcome   String   // success | failure
+  ipAddress String?
+  userAgent String?
+  timestamp DateTime @default(now())
+
+  @@index([userId])
+  @@index([timestamp])
 }
 
 model Notification {
