@@ -23,8 +23,8 @@
       }
     ],
     "paths": {
-      "@/shared/ui/*": ["./components/ui/*"],
-      "@/*": ["./*"]
+      "@/shared/ui/*": ["./src/components/ui/*"],
+      "@/*": ["./src/*"]
     },
     "types": ["vitest/globals"]
   },
