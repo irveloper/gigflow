@@ -234,13 +234,12 @@ Example: 3-piece band, 2h set
 
 ## Open Questions
 
-1. **Schema approach**: Option A (snapshot on Event) or Option B (rate tables on joins)? → Recommend A.
-2. **Backfill**: For existing events with no `hotelFee`, should reports show `null` or estimate from `Musician.hourlyRate × duration`?
-3. **Fee entry UX**: When does the manager enter the `hotelFee` and per-performer rates? At event creation? Or after? A dedicated "set pricing" step on event edit is needed.
-4. **Band member rate**: Default to `Musician.hourlyRate` unless overridden per-event?
-5. **Payment request record**: Create a `PaymentRequest` model, or just export CSV/PDF?
-6. **Date range scope**: Arbitrary date picker or preset periods only (week/month/quarter/year)?
-7. **Musician role visibility**: Does musician see only their own payment rows, or aggregate?
+1. **`MusicianOrganization.orgRate` vs `Musician.hourlyRate`**: Should we add `orgRate` to the join table for org-specific negotiated rates, or keep a single global `hourlyRate` on `Musician`? → Leaning toward adding `orgRate` for precision.
+2. **Set Pricing UX location**: Where does the "Set Pricing" form live — on the event detail page (inline section), or a separate modal/drawer on the reports page?
+3. **Payment request record**: `PaymentRequest` model now or export CSV stub first?
+4. **Date range scope**: Arbitrary date picker or preset periods only (week/month/quarter/year)?
+5. **Musician role visibility**: Does a musician user see their own `EventPerformerPayment` rows (what they'll be paid), or just their schedule?
+6. **Pricing lock**: Once `pricingStatus = 'confirmed'`, can it be edited? Or is it immutable (requires a correction entry)?
 
 ---
 
@@ -248,27 +247,50 @@ Example: 3-piece band, 2h set
 
 ```
 Phase 1 — Schema & data model
-  1. prisma/schema.prisma         — add hotelFee, performerCost to Event
-                                  — add EventPerformerPayment model
-  2. prisma migration             — run migration
-  3. specs/entities/event.schema.ts — add hotelFee, performerCost fields to EventSchema
-  4. specs/entities/             — new EventPerformerPaymentSchema
+  1. prisma/schema.prisma
+       — add HotelOrganization.defaultHourlyRate Float?
+       — add MusicianOrganization.orgRate Float?
+       — add Event.hotelFee Float?, Event.pricingStatus String ('pending'|'confirmed')
+       — add EventPerformerPayment model
+  2. prisma migration (pnpm prisma migrate dev)
+  3. specs/entities/event.schema.ts    — add hotelFee, pricingStatus to EventSchema
+  4. specs/entities/                   — new EventPerformerPaymentSchema
 
-Phase 2 — Backend aggregation
-  5. server/routers/reports.ts    — new router with `getOrgStats` (managerProcedure)
-                                  — Input: { period, year }
-                                  — Output: { kpis, monthlyTrend, byHotel, byMusician }
-  6. server/routers/index.ts      — register reports router
+Phase 2 — Pricing backend
+  5. server/routers/events.ts
+       — add setPricing managerProcedure:
+           input: { eventId, hotelFee, performers: [{ musicianId, agreedRate }] }
+           creates EventPerformerPayment rows, sets Event.pricingStatus = 'confirmed'
+       — add getSuggestedPricing managerProcedure:
+           input: { eventId }
+           output: { hotelFee: suggested Float|null, source: 'historical'|'default'|null,
+                     performers: [{ musicianId, name, rate: Float, source: 'orgRate'|'hourlyRate' }] }
 
-Phase 3 — Frontend
-  7. specs/features/reports.scenarios.ts  — behavior scenarios
-  8. features/reports/model.ts    — Effector model with loadOrgStatsFx
-  9. app/(authenticated)/reports/page.tsx — wire real data, remove mock arrays
- 10. __tests__/features/reports.test.ts   — unit tests
+Phase 3 — Reports backend
+  6. server/routers/reports.ts    — new router with getOrgStats (managerProcedure)
+       — Input: { period: 'week'|'month'|'quarter'|'year', year?: number }
+       — Output: {
+           kpis: { events, hotelRevenue, performerCost, margin, checkinRate,
+                   confirmedCount, estimatedCount, unpricedCount },
+           monthlyTrend: [{ month, events, hotelRevenue, performerCost }],
+           byHotel: [{ hotelId, name, events, revenue, pricingStatus }],
+           byMusician: [{ musicianId, name, events, hours, cost, isPaid, pricingStatus }]
+         }
+  7. server/routers/index.ts      — register reports router
 
-Phase 4 — Event creation pricing
- 11. Event creation/edit form     — add hotelFee + per-performer rate fields
- 12. events.create / events.update — persist pricing fields
+Phase 4 — Frontend
+  8. specs/features/reports.scenarios.ts  — behavior scenarios
+  9. features/reports/model.ts    — Effector model with loadOrgStatsFx
+ 10. app/(authenticated)/reports/page.tsx — wire real data, remove mock arrays
+     — three states per amount: confirmed / ~estimated / Sin precio badge
+     — "Set Pricing" button on unpriced events
+ 11. __tests__/features/reports.test.ts   — unit tests
+
+Phase 5 — Set Pricing UX
+ 12. Event detail / drawer        — Set Pricing form with pre-filled suggestions
+     — hotelFee input (suggested value pre-filled, editable)
+     — per-performer table (one row per musician/band member, rate editable)
+     — "Confirm pricing" saves EventPerformerPayment rows
 ```
 
 No new npm packages required.

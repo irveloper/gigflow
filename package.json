@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "next build",
+    "build": "prisma generate && next build",
+    "postinstall": "prisma generate",
     "dev": "next dev",
     "lint": "biome check .",
     "format": "biome format --write .",
@@ -14,7 +15,8 @@
     "test:integration": "vitest run --config vitest.integration.ts",
     "test:coverage": "vitest run --coverage",
     "db:migrate": "prisma migrate deploy",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "typecheck": "tsc --noEmit"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

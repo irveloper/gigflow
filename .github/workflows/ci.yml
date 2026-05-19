@@ -19,6 +19,16 @@ jobs:
       AWS_ACCESS_KEY_ID: ci-placeholder
       AWS_SECRET_ACCESS_KEY: ci-placeholder
       AWS_S3_BUCKET: ci-placeholder
+      STRIPE_SECRET_KEY: sk_test_ci_placeholder
+      STRIPE_WEBHOOK_SECRET: whsec_ci_placeholder
+      STRIPE_PRICE_STARTER_MONTHLY: price_ci_placeholder
+      STRIPE_PRICE_STARTER_ANNUAL: price_ci_placeholder
+      STRIPE_PRICE_GROWTH_MONTHLY: price_ci_placeholder
+      STRIPE_PRICE_GROWTH_ANNUAL: price_ci_placeholder
+      STRIPE_PRICE_PRO_MONTHLY: price_ci_placeholder
+      STRIPE_PRICE_PRO_ANNUAL: price_ci_placeholder
+      RESEND_API_KEY: re_ci_placeholder
+      RESEND_FROM_EMAIL: noreply@ci.local
 
     steps:
       - uses: actions/checkout@v4
@@ -29,14 +39,20 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: "22"
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Prisma client
+        run: pnpm prisma generate
+
       - name: Run tests
         run: pnpm test:run
+
+      - name: Type check
+        run: pnpm typecheck
 
       - name: Build
         run: pnpm build
