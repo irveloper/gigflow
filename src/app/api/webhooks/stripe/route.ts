@@ -66,6 +66,7 @@ async function handleEvent(event: Stripe.Event) {
         create: { name: orgName, slug: orgSlug, status: sub.status === "trialing" ? "trialing" : "active" },
       })
 
+      const periodEnd = sub.items.data[0]?.current_period_end
       await prisma.subscription.upsert({
         where: { stripeCustomerId },
         update: {
@@ -74,7 +75,7 @@ async function handleEvent(event: Stripe.Event) {
           status: sub.status,
           seatLimit,
           trialEndsAt: sub.trial_end ? new Date(sub.trial_end * 1000) : null,
-          currentPeriodEnd: new Date(sub.current_period_end * 1000),
+          currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
         },
         create: {
           organizationId: org.id,
@@ -84,7 +85,7 @@ async function handleEvent(event: Stripe.Event) {
           status: sub.status,
           seatLimit,
           trialEndsAt: sub.trial_end ? new Date(sub.trial_end * 1000) : null,
-          currentPeriodEnd: new Date(sub.current_period_end * 1000),
+          currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
         },
       })
 
@@ -106,6 +107,7 @@ async function handleEvent(event: Stripe.Event) {
       const priceId = sub.items.data[0]?.price.id ?? null
       const seatLimit = priceId ? seatLimitForPrice(priceId) : 3
 
+      const updatedPeriodEnd = sub.items.data[0]?.current_period_end
       await prisma.subscription.updateMany({
         where: { stripeSubscriptionId: sub.id },
         data: {
@@ -113,7 +115,7 @@ async function handleEvent(event: Stripe.Event) {
           status: sub.status,
           seatLimit,
           trialEndsAt: sub.trial_end ? new Date(sub.trial_end * 1000) : null,
-          currentPeriodEnd: new Date(sub.current_period_end * 1000),
+          currentPeriodEnd: updatedPeriodEnd ? new Date(updatedPeriodEnd * 1000) : null,
           cancelAtPeriodEnd: sub.cancel_at_period_end,
         },
       })
