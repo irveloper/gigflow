@@ -18,6 +18,7 @@ const PLANS = [
     monthlyPrice: "$29",
     annualPrice: "$290",
     features: ["3 team members", "Unlimited events", "Check-in with photo", "Email notifications"],
+    popular: false,
   },
   {
     key: "growth",
@@ -35,6 +36,7 @@ const PLANS = [
     monthlyPrice: "$199",
     annualPrice: "$1,990",
     features: ["25 team members", "Unlimited events", "Check-in with photo", "Email notifications", "Login audit log", "Priority support"],
+    popular: false,
   },
 ] as const
 
