@@ -326,7 +326,7 @@ export const eventsRouter = router({
       }
 
       // Server-side scheduling conflict detection
-      await assertNoPerformerConflict({ ctx, input })
+      await assertNoPerformerConflict({ ctx, input: { ...input, organizationId: ctx.organizationId } })
 
       const row = await ctx.prisma.event.create({
         data: {

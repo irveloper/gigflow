@@ -137,7 +137,7 @@ export default function SuperAdminOrgDetailPage() {
                   <li key={m.id} className="flex items-center justify-between text-sm">
                     <div>
                       <span className="font-medium">{m.name}</span>
-                      <span className="text-muted-foreground text-xs ml-2">{m.instrument}</span>
+                      <span className="text-muted-foreground text-xs ml-2">{m.instruments.join(", ")}</span>
                     </div>
                     {!m.isActive && <Badge variant="secondary" className="text-xs">Inactivo</Badge>}
                   </li>

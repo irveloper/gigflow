@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma"
 import { appRouter } from "@/server/routers/index"
 import { createCallerFactory } from "@/server/trpc"
 import type { Session } from "next-auth"
+import type { NextRequest } from "next/server"
 
 type Role = "manager" | "musician" | "hotel" | "superadmin"
 
@@ -37,12 +38,18 @@ function buildSession(opts: TestContextOptions): Session {
       email: `${role}@test.com`,
       role,
       isActive: true,
-      emailVerified,
+      emailVerified: emailVerified as unknown as boolean & Date,
+      phone: undefined,
       instruments: [],
       styles: [],
+      hourlyRate: undefined,
+      location: undefined,
+      contactPerson: undefined,
+      hotelId: undefined,
       createdAt: new Date().toISOString(),
       organizationId: orgId ?? undefined,
       organizationSlug: orgId ? orgSlug : undefined,
+      musicianId: undefined,
     },
     expires: new Date(Date.now() + 86_400_000).toISOString(),
   }
@@ -76,7 +83,7 @@ export async function createTestCaller(opts: TestContextOptions) {
   }
 
   return callerFactory({
-    req: {} as Parameters<typeof callerFactory>[0]["req"],
+    req: {} as NextRequest,
     prisma,
     session,
     organizationId: opts.orgId ?? null,

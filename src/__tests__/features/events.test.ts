@@ -149,7 +149,7 @@ describe("events model", () => {
       "band-2": bandFixtures.flamencoGroup.members ?? [],
     }
 
-    const makeEvent = (overrides: Partial<(typeof eventFixtures.todayAcoustic)>) => ({
+    const makeEvent = (overrides: Partial<Event>) => ({
       ...eventFixtures.todayAcoustic,
       date: BASE_DATE,
       ...overrides,

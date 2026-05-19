@@ -53,7 +53,7 @@ export default {
       session.user.id = token.id as string
       session.user.role = token.role as string | undefined
       session.user.isActive = token.isActive as boolean
-      session.user.emailVerified = token.emailVerified as boolean
+      session.user.emailVerified = token.emailVerified as unknown as typeof session.user.emailVerified
       session.user.phone = token.phone as string | undefined
       session.user.instruments = (token.instruments as string[]) ?? []
       session.user.styles = (token.styles as string[]) ?? []

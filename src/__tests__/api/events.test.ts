@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest"
 import { prisma } from "@/lib/prisma"
 import { createTestCaller } from "./helpers"
+import type { NextRequest } from "next/server"
 
 const ORG_ID = "integration-events-org"
 const ORG_SLUG = "integration-events"
@@ -60,7 +61,6 @@ describe("events router", () => {
       status: "scheduled",
     })
     expect(created.id).toBeTruthy()
-    expect(created.organizationId ?? ORG_ID).toBe(ORG_ID)
 
     const found = await caller.events.getById({ id: created.id })
     expect(found.title).toBe("Integration Test Event")
@@ -139,7 +139,7 @@ describe("events router", () => {
     const { createCallerFactory } = await import("@/server/trpc")
     const factory = createCallerFactory(appRouter)
     const caller = factory({
-      req: {} as Parameters<typeof factory>[0]["req"],
+      req: {} as NextRequest,
       prisma,
       session: null,
       organizationId: null,

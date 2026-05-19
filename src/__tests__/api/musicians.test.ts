@@ -4,6 +4,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest"
 import { prisma } from "@/lib/prisma"
 import { createTestCaller } from "./helpers"
+import type { NextRequest } from "next/server"
 
 const ORG_ID = "integration-musicians-org"
 const ORG_SLUG = "integration-musicians"
@@ -62,6 +63,7 @@ describe("musicians router", () => {
       email: `musician-int-${Date.now()}@test.com`,
       phone: "+52 998 000 0001",
       instruments: ["Jazz"],
+      styles: [],
       hourlyRate: 500,
       isActive: true,
     })
@@ -76,6 +78,7 @@ describe("musicians router", () => {
       email: `musician-upd-${Date.now()}@test.com`,
       phone: "+52 998 000 0002",
       instruments: ["Rock"],
+      styles: [],
       hourlyRate: 600,
       isActive: true,
     })
@@ -90,6 +93,7 @@ describe("musicians router", () => {
       email: `musician-del-${Date.now()}@test.com`,
       phone: "+52 998 000 0003",
       instruments: [],
+      styles: [],
       hourlyRate: 400,
       isActive: true,
     })
@@ -103,7 +107,7 @@ describe("musicians router", () => {
     const { createCallerFactory } = await import("@/server/trpc")
     const factory = createCallerFactory(appRouter)
     const caller = factory({
-      req: {} as Parameters<typeof factory>[0]["req"],
+      req: {} as NextRequest,
       prisma,
       session: null,
       organizationId: null,

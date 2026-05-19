@@ -155,7 +155,7 @@ export const organizationsRouter = router({
       return {
         ...mapOrg(org),
         users: org.users,
-        events: org.events.map((e) => ({ ...e, date: e.date.toISOString() })),
+        events: org.events.map((e) => ({ ...e })),
         hotels: org.hotels.map((h) => ({
           ...h.hotel,
           contactPerson: h.contactPerson,

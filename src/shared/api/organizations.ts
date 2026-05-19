@@ -5,8 +5,8 @@ export async function fetchMyOrg(): Promise<Organization> {
   return trpc.organizations.getMyOrg.query()
 }
 
-export async function createOrg(input: CreateOrganizationInput): Promise<Organization> {
-  return trpc.organizations.create.mutate(input)
+export async function createOrg(_input: CreateOrganizationInput): Promise<Organization> {
+  throw new Error("Org creation is handled via trpc.organizations.initiateCheckout (Stripe flow)")
 }
 
 export async function updateOrg(input: UpdateOrganizationInput): Promise<Organization> {

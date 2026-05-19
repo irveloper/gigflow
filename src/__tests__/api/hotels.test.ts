@@ -4,6 +4,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest"
 import { prisma } from "@/lib/prisma"
 import { createTestCaller } from "./helpers"
+import type { NextRequest } from "next/server"
 
 const ORG_ID = "integration-hotels-org"
 const ORG_SLUG = "integration-hotels"
@@ -100,7 +101,7 @@ describe("hotels router", () => {
     const { createCallerFactory } = await import("@/server/trpc")
     const factory = createCallerFactory(appRouter)
     const caller = factory({
-      req: {} as Parameters<typeof factory>[0]["req"],
+      req: {} as NextRequest,
       prisma,
       session: null,
       organizationId: null,
