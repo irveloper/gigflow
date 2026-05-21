@@ -24,7 +24,6 @@ export async function uploadCheckInPhoto(file: File, eventId: string): Promise<U
     throw new Error(messages[res.status] ?? "No se pudo subir la foto. Intenta de nuevo.")
   }
 
-  const { url } = (await res.json()) as { url: string }
-  const path = new URL(url).pathname.slice(1) // strip leading /
-  return { path, signedUrl: url }
+  const { key } = (await res.json()) as { key: string }
+  return { path: key, signedUrl: `/api/files/${key}` }
 }

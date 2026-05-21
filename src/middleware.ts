@@ -150,6 +150,11 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/auth/pending?verify=1", request.url))
     }
 
+    // Block unverified users from reaching the org-creation page directly.
+    if (pathname.startsWith("/org/new") && session?.user && session.user.emailVerified === false) {
+      return NextResponse.redirect(new URL("/auth/pending?verify=1", request.url))
+    }
+
     // Redirect org users from legacy non-org routes to their org-scoped equivalent.
     // Superadmin and pending users have no organizationSlug — they pass through unchanged.
     const orgSlug = session?.user?.organizationSlug

@@ -71,11 +71,11 @@ export function musicianInvite(
   link: string,
 ): { subject: string; html: string } {
   return {
-    subject: "Te han invitado a PlugIn Cancún",
+    subject: "Te han invitado a Gigflow",
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
         <h2 style="margin-top:0">¡Hola, ${escapeHtml(name)}!</h2>
-        <p><strong>${escapeHtml(orgName)}</strong> te ha invitado a acceder al portal de músicos de <strong>PlugIn Cancún</strong>.</p>
+        <p><strong>${escapeHtml(orgName)}</strong> te ha invitado a acceder al portal de músicos de <strong>Gigflow</strong>.</p>
         <p>Haz clic en el botón para crear tu contraseña y activar tu cuenta:</p>
         <p style="margin:24px 0">
           <a href="${link}" style="background:#0f172a;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;display:inline-block">
@@ -94,7 +94,7 @@ export function musicianInvite(
 
 export function inviteConfirmed(name: string, loginLink: string): { subject: string; html: string } {
   return {
-    subject: "Tu cuenta en PlugIn Cancún está activa",
+    subject: "Tu cuenta en Gigflow está activa",
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
         <h2 style="margin-top:0">¡Bienvenido, ${escapeHtml(name)}!</h2>
