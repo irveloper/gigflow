@@ -5,7 +5,7 @@ import {
   CreateOrganizationInputSchema,
   UpdateOrganizationInputSchema,
 } from "@/entities/organization/schema"
-import { stripe, seatLimitForPrice } from "@/lib/stripe"
+import { stripe, } from "@/lib/stripe"
 import { env } from "@/lib/env"
 import type { Organization } from "@/shared/types"
 

@@ -14,8 +14,8 @@ export async function submitCheckIn(input: CheckInInput): Promise<CheckInResult>
   let photoUrl: string | undefined
 
   if (input.photo) {
-    const { signedUrl } = await uploadCheckInPhoto(input.photo, input.eventId)
-    photoUrl = signedUrl
+    const { path } = await uploadCheckInPhoto(input.photo, input.eventId)
+    photoUrl = path
   }
 
   await trpc.events.checkIn.mutate({

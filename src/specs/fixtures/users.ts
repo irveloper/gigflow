@@ -25,7 +25,7 @@ export const userFixtures = {
     phone: "+52 998 765 4321",
     createdAt: NOW,
     organizationId: "org-1",
-    organizationSlug: "plugin-cancun",
+    organizationSlug: "gigflow",
   },
   hotel: {
     id: "user-3",
@@ -39,6 +39,16 @@ export const userFixtures = {
     location: "Cancun, Mexico",
     contactPerson: "Roberto Martinez",
     createdAt: NOW,
+  },
+  // Admin who has verified their email but has not yet created an organization.
+  // emailVerified state lives in the JWT/session (not on the domain User type).
+  verifiedNoOrg: {
+    id: "user-4",
+    email: "newadmin@test.com",
+    name: "New Admin",
+    role: "manager",
+    createdAt: NOW,
+    // no organizationId, no organizationSlug
   },
 } satisfies Record<string, User>
 

@@ -11,7 +11,7 @@ export default function NotFound() {
           <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Music className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">PlugIn Cancún</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Gigflow</h1>
         </div>
 
         <Card>

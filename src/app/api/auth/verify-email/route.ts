@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { unstable_update } from "@/auth"
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
@@ -36,9 +37,27 @@ export async function GET(request: NextRequest) {
     }),
   ])
 
-  // Clear the session so any existing JWT (which still has emailVerified=false)
-  // is invalidated. The user will get a fresh token on next login.
-  const redirectResponse = NextResponse.redirect(new URL("/auth/login?verified=1", request.url))
+  // Detect whether the user has an active session.
+  const sessionCookieValue =
+    request.cookies.get("authjs.session-token")?.value ??
+    request.cookies.get("__Secure-authjs.session-token")?.value ??
+    request.cookies.get("next-auth.session-token")?.value ??
+    request.cookies.get("__Secure-next-auth.session-token")?.value
+
+  if (sessionCookieValue) {
+    // User is logged in — update their JWT in-place so they skip re-authentication.
+    // unstable_update() triggers the jwt callback with { trigger: "update" } and
+    // the emailVerified field is now propagated (added in auth.config.ts).
+    await unstable_update({ user: { emailVerified: new Date() } })
+    return NextResponse.redirect(new URL("/auth/pending", request.url))
+  }
+
+  // User is not logged in — force a fresh JWT on next login by clearing the old token.
+  // The `from` param ensures the middleware sends them to /auth/pending (create-org
+  // mode) after they log in, rather than to the home page.
+  const redirectResponse = NextResponse.redirect(
+    new URL("/auth/login?verified=1&from=/auth/pending", request.url),
+  )
   const cookieNames = [
     "authjs.session-token",
     "__Secure-authjs.session-token",

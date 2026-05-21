@@ -17,7 +17,8 @@
       },
       "suspicious": {
         "noExplicitAny": "off",
-        "noArrayIndexKey": "off"
+        "noArrayIndexKey": "off",
+        "noThenProperty": "off"
       },
       "style": {
         "noNonNullAssertion": "off",
@@ -49,6 +50,7 @@
       "node_modules",
       ".next",
       ".agents",
+      ".claude",
       "out",
       "build",
       "public",

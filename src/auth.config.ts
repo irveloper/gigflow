@@ -8,10 +8,11 @@ export default {
   callbacks: {
     jwt({ token, user, trigger, session }) {
       if (trigger === "update" && session) {
-        const s = session as { user?: { organizationId?: string; organizationSlug?: string; role?: string } }
+        const s = session as { user?: { organizationId?: string; organizationSlug?: string; role?: string; emailVerified?: Date | null | boolean } }
         if (s.user?.organizationId !== undefined) token.organizationId = s.user.organizationId
         if (s.user?.organizationSlug !== undefined) token.organizationSlug = s.user.organizationSlug
         if (s.user?.role !== undefined) token.role = s.user.role
+        if (s.user?.emailVerified !== undefined) token.emailVerified = !!s.user.emailVerified
       }
       if (user) {
         const u = user as unknown as {
@@ -53,7 +54,7 @@ export default {
       session.user.id = token.id as string
       session.user.role = token.role as string | undefined
       session.user.isActive = token.isActive as boolean
-      session.user.emailVerified = token.emailVerified as unknown as typeof session.user.emailVerified
+      session.user.emailVerified = token.emailVerified ? new Date() : null
       session.user.phone = token.phone as string | undefined
       session.user.instruments = (token.instruments as string[]) ?? []
       session.user.styles = (token.styles as string[]) ?? []

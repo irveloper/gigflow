@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { Music, Lock, Loader2, CheckCircle2, XCircle } from "lucide-react"
+import { Music, Lock, Loader2, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -79,7 +79,7 @@ export default function AcceptInvitePage() {
           <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Music className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">PlugIn Cancún</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Gigflow</h1>
         </div>
 
         {invite.status === "loading" && (

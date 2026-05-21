@@ -50,6 +50,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: message }, { status: 502 })
   }
 
-  const url = `https://${env.AWS_S3_BUCKET}.s3.${env.AWS_REGION}.amazonaws.com/${key}`
-  return NextResponse.json({ url })
+  return NextResponse.json({ key })
 }

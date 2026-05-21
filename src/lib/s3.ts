@@ -1,4 +1,5 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3"
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import * as Sentry from "@sentry/nextjs"
 import { env } from "@/lib/env"
 
@@ -41,4 +42,38 @@ export async function uploadWithRetry(params: UploadParams): Promise<void> {
     extra: { bucket: params.Bucket, key: params.Key },
   })
   throw lastError
+}
+
+export const PRESIGNED_URL_TTL_SECONDS = 3600
+
+// Module-level cache — lives for the lifetime of the server process
+const presignedUrlCache = new Map<string, { url: string; expiresAt: number }>()
+
+export async function generatePresignedGetUrl(
+  key: string,
+  userId: string
+): Promise<string> {
+  const cacheKey = `${userId}:${key}`
+  const cached = presignedUrlCache.get(cacheKey)
+
+  // Return cached URL if more than 60s remains before expiry
+  if (cached && cached.expiresAt - Date.now() > 60_000) {
+    return cached.url
+  }
+
+  const command = new GetObjectCommand({
+    Bucket: env.AWS_S3_BUCKET,
+    Key: key,
+  })
+
+  const url = await getSignedUrl(s3Client, command, {
+    expiresIn: PRESIGNED_URL_TTL_SECONDS,
+  })
+
+  presignedUrlCache.set(cacheKey, {
+    url,
+    expiresAt: Date.now() + PRESIGNED_URL_TTL_SECONDS * 1000,
+  })
+
+  return url
 }

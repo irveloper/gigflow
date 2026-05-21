@@ -75,7 +75,7 @@ export function Navigation() {
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <Music className="h-5 w-5 text-white" />
             </div>
-            <span className="font-bold text-xl text-gray-900">PlugIn Cancún</span>
+            <span className="font-bold text-xl text-gray-900">Gigflow</span>
           </Link>
 
           {/* Desktop Navigation */}

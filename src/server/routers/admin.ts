@@ -1,8 +1,8 @@
 import { z } from "zod"
 import bcrypt from "bcryptjs"
 import { TRPCError } from "@trpc/server"
-import { router, managerProcedure, superAdminProcedure } from "@/server/trpc"
-import { RegisterInputSchema, UserRoleSchema } from "@/entities/user/schema"
+import { router, managerProcedure, } from "@/server/trpc"
+import { RegisterInputSchema, } from "@/entities/user/schema"
 import { OffsetPaginationInputSchema } from "@/specs/entities/pagination.schema"
 import type { User } from "@/shared/types"
 
