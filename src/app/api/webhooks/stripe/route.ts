@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
-import Stripe from "stripe"
+import type Stripe from "stripe"
 import { stripe, seatLimitForPrice } from "@/lib/stripe"
 import { env } from "@/lib/env"
 import { prisma } from "@/lib/prisma"

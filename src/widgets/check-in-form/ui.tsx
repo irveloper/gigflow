@@ -12,7 +12,6 @@ import { Camera, Clock, MapPin, Upload, CheckCircle, ArrowLeft, AlertTriangle, L
 import { eventsModel } from "@/features/events/model"
 import { submitCheckInFx, $isCheckingIn } from "@/features/check-in/model"
 import { sileo } from "sileo"
-import type { Event } from "@/shared/types"
 
 interface CheckInFormProps {
   eventId: string

@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { router, managerProcedure, orgProcedure } from "@/server/trpc"
-import { stripe, PLANS, seatLimitForPrice } from "@/lib/stripe"
+import { stripe, PLANS, } from "@/lib/stripe"
 import { env } from "@/lib/env"
 import type { Subscription } from "@/shared/types"
 

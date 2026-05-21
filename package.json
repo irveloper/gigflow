@@ -16,7 +16,8 @@
     "test:coverage": "vitest run --coverage",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "prisma db seed",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepare": "husky"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -109,6 +110,7 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4.4.1",
     "@vitest/coverage-v8": "^3.1.2",
+    "husky": "^9.1.7",
     "jsdom": "^29.0.2",
     "postcss": "^8",
     "prisma": "^7.8.0",

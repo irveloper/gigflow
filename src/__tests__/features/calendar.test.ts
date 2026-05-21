@@ -6,8 +6,7 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { allEvents, eventFixtures } from "@/shared/mocks/events"
-import { userFixtures } from "@/shared/mocks/users"
+import type { allEvents, } from "@/shared/mocks/events"
 import { calendarScenarios } from "@/__tests__/scenarios/calendar.scenarios"
 import {
   filterEventsForCalendar,

@@ -90,7 +90,7 @@ async function assertNoPerformerConflict({
       if (event.musicianId && candidateMemberIds.includes(event.musicianId)) {
         throw new TRPCError({
           code: "CONFLICT",
-          message: `A band member is already booked solo at this time`,
+          message: "A band member is already booked solo at this time",
         })
       }
 

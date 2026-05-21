@@ -5,7 +5,7 @@
  * When behavior changes: update scenarios FIRST → update this file → update model.
  */
 
-import { describe, it, expect, beforeEach } from "vitest"
+import { describe, it, expect, } from "vitest"
 import { filterEventsForCalendar } from "@/entities/event"
 import { userFixtures } from "@/specs/fixtures"
 import type { Event } from "@/shared/types"

@@ -14,7 +14,7 @@ export default async function OrgLayout({
   const session = await auth()
 
   if (!session?.user) {
-    redirect(`/auth/login`)
+    redirect("/auth/login")
   }
 
   const isSuperAdmin = session.user.role === "superadmin"

@@ -35,7 +35,7 @@ export function generateSlug(name: string): string {
   return name
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // strip diacritics
+    .replace(/\p{M}/gu, "") // strip diacritics
     .replace(/[^a-z0-9\s-]/g, "")    // remove non-alphanumeric except spaces/hyphens
     .trim()
     .replace(/[\s-]+/g, "-")          // spaces and hyphens → single hyphen

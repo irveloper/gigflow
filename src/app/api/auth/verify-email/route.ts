@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     // User is logged in — update their JWT in-place so they skip re-authentication.
     // unstable_update() triggers the jwt callback with { trigger: "update" } and
     // the emailVerified field is now propagated (added in auth.config.ts).
-    await unstable_update({ user: { emailVerified: true } })
+    await unstable_update({ user: { emailVerified: new Date() } })
     return NextResponse.redirect(new URL("/auth/pending", request.url))
   }
 

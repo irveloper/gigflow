@@ -62,7 +62,7 @@ export default function PendingPage() {
   // Determine which step we're on based on session state (source of truth).
   // Fall back to URL hint on initial render before session resolves.
   const emailVerified = status === "authenticated"
-    ? session?.user.emailVerified === true
+    ? !!session?.user.emailVerified
     : !verifyHint
 
   // CREATE-ORG mode: email is verified, user needs to name their organization.

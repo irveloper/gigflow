@@ -146,12 +146,12 @@ export async function middleware(request: NextRequest) {
     !pathname.startsWith("/api/")
   ) {
     const session = await auth()
-    if (session?.user && session.user.emailVerified === false) {
+    if (session?.user && !session.user.emailVerified) {
       return NextResponse.redirect(new URL("/auth/pending?verify=1", request.url))
     }
 
     // Block unverified users from reaching the org-creation page directly.
-    if (pathname.startsWith("/org/new") && session?.user && session.user.emailVerified === false) {
+    if (pathname.startsWith("/org/new") && session?.user && !session.user.emailVerified) {
       return NextResponse.redirect(new URL("/auth/pending?verify=1", request.url))
     }
 
