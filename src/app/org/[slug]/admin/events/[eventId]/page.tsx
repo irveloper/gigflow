@@ -83,7 +83,7 @@ export default function EventDetailPage({
               </span>
               <span className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-gray-400" />
-                {event.time} · {event.durationMinutes} min
+                {event.time} · {event.sets} min
               </span>
               <span className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-gray-400" />

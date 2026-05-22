@@ -25,7 +25,7 @@ export const musiciansScenarios = {
           phone: "+52 998 555 0000",
           instruments: ["Voice"],
           styles: ["Soul", "R&B"],
-          hourlyRate: 950,
+          pricePerSet: 950,
           isActive: true,
         },
       },

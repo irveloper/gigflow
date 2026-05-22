@@ -75,7 +75,7 @@ export function Navigation() {
         <div className="flex items-center space-x-6">
           <Link href={prefix || "/"} className="flex items-center space-x-2">
             <Music className="h-6 w-6" />
-            <span className="font-bold">Music Platform</span>
+            <span className="font-bold">Gigflow</span>
           </Link>
 
           <div className="hidden md:flex items-center space-x-4">

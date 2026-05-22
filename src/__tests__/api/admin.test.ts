@@ -23,7 +23,6 @@ beforeAll(async () => {
       stripePriceId: "price_growth_monthly",
       status: "active",
       seatLimit: 10,
-      currentPeriodStart: new Date(),
       currentPeriodEnd: new Date(Date.now() + 30 * 86_400_000),
     },
   })

@@ -22,7 +22,7 @@ import { sileo } from "sileo"
 import type { Band, Musician } from "@/shared/types"
 
 const EMPTY_FORM = {
-  name: "", description: "", genre: "", memberIds: [] as string[],
+  name: "", description: "", genre: "", pricePerSet: "", memberIds: [] as string[],
 }
 
 function BandCard({
@@ -60,6 +60,9 @@ function BandCard({
             )}
             {band.description && (
               <p className="text-sm text-muted-foreground mt-1">{band.description}</p>
+            )}
+            {band.pricePerSet != null && (
+              <p className="text-sm text-muted-foreground mt-1">${band.pricePerSet.toLocaleString()}/set</p>
             )}
           </div>
           <div className="flex items-center gap-1">
@@ -160,7 +163,7 @@ export function AdminBandsManager() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [editOpen, setEditOpen] = useState(false)
   const [editBand, setEditBand] = useState<Band | null>(null)
-  const [editForm, setEditForm] = useState({ name: "", genre: "", description: "" })
+  const [editForm, setEditForm] = useState({ name: "", genre: "", description: "", pricePerSet: "" })
   const [saving, setSaving] = useState(false)
 
   const fetchData = useCallback(async () => {
@@ -195,6 +198,7 @@ export function AdminBandsManager() {
         name: form.name,
         description: form.description || undefined,
         genre: form.genre || undefined,
+        pricePerSet: form.pricePerSet ? Number(form.pricePerSet) : undefined,
         isActive: true,
         memberIds: form.memberIds,
       })
@@ -211,7 +215,7 @@ export function AdminBandsManager() {
 
   const handleOpenEdit = (band: Band) => {
     setEditBand(band)
-    setEditForm({ name: band.name, genre: band.genre ?? "", description: band.description ?? "" })
+    setEditForm({ name: band.name, genre: band.genre ?? "", description: band.description ?? "", pricePerSet: band.pricePerSet != null ? String(band.pricePerSet) : "" })
     setEditOpen(true)
   }
 
@@ -228,6 +232,7 @@ export function AdminBandsManager() {
         name: editForm.name,
         genre: editForm.genre || undefined,
         description: editForm.description || undefined,
+        pricePerSet: editForm.pricePerSet ? Number(editForm.pricePerSet) : null,
       })
       sileo.success({ title: "Banda actualizada" })
       setEditOpen(false)
@@ -323,6 +328,10 @@ export function AdminBandsManager() {
                 </div>
               </div>
               <div>
+                <Label htmlFor="b-rate">Tarifa por set ($)</Label>
+                <Input id="b-rate" type="number" min={0} value={form.pricePerSet} onChange={(e) => setForm({ ...form, pricePerSet: e.target.value })} placeholder="Ej: 2000" />
+              </div>
+              <div>
                 <Label className="mb-2 block">
                   Miembros * <span className="text-muted-foreground font-normal">(mínimo 2)</span>
                 </Label>
@@ -383,6 +392,10 @@ export function AdminBandsManager() {
             <div>
               <Label htmlFor="e-desc">Descripción</Label>
               <Input id="e-desc" value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor="e-rate">Tarifa por set ($)</Label>
+              <Input id="e-rate" type="number" min={0} value={editForm.pricePerSet} onChange={(e) => setEditForm({ ...editForm, pricePerSet: e.target.value })} placeholder="Ej: 2000" />
             </div>
           </div>
           <div className="flex gap-2 pt-2">

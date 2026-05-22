@@ -9,6 +9,7 @@ import { hotelsRouter } from "./hotels"
 import { musiciansRouter } from "./musicians"
 import { notificationsRouter } from "./notifications"
 import { organizationsRouter } from "./organizations"
+import { reportsRouter } from "./reports"
 
 export const appRouter = router({
   auth: authRouter,
@@ -21,6 +22,7 @@ export const appRouter = router({
   musicians: musiciansRouter,
   notifications: notificationsRouter,
   organizations: organizationsRouter,
+  reports: reportsRouter,
 })
 
 export type AppRouter = typeof appRouter

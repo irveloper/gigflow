@@ -28,7 +28,6 @@ beforeAll(async () => {
       stripePriceId: "price_starter_monthly",
       status: "active",
       seatLimit: 3,
-      currentPeriodStart: new Date(),
       currentPeriodEnd: new Date(Date.now() + 30 * 86_400_000),
     },
   })
@@ -43,7 +42,6 @@ beforeAll(async () => {
       stripePriceId: "price_starter_monthly",
       status: "suspended",
       seatLimit: 3,
-      currentPeriodStart: new Date(),
       currentPeriodEnd: new Date(Date.now() + 30 * 86_400_000),
     },
   })
@@ -67,9 +65,10 @@ describe("billing router", () => {
   it("getPlans returns plan config", async () => {
     const caller = await createTestCaller({ role: "manager", orgId: ORG_ACTIVE })
     const plans = await caller.billing.getPlans()
-    expect(plans).toHaveProperty("starter")
-    expect(plans).toHaveProperty("growth")
-    expect(plans).toHaveProperty("pro")
+    const keys = plans.map((p) => p.key)
+    expect(keys).toContain("starter")
+    expect(keys).toContain("growth")
+    expect(keys).toContain("pro")
   })
 
   it("suspended org throws SUBSCRIPTION_INACTIVE on orgProcedure endpoints", async () => {

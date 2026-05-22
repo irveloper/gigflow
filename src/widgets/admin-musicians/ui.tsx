@@ -25,7 +25,7 @@ import { sileo } from "sileo"
 import type { Musician } from "@/shared/types"
 
 const EMPTY_FORM = {
-  name: "", email: "", phone: "", instruments: "", styles: "", hourlyRate: 0, isActive: true, avatar: "",
+  name: "", email: "", phone: "", instruments: "", styles: "", pricePerSet: 0, isActive: true, avatar: "",
 }
 
 function MusicianCard({
@@ -109,7 +109,7 @@ function MusicianCard({
         <div className="space-y-1 text-sm text-muted-foreground">
           <div className="flex items-center gap-2"><Mail className="h-3 w-3" />{musician.email}</div>
           <div className="flex items-center gap-2"><Phone className="h-3 w-3" />{musician.phone}</div>
-          <div className="flex items-center gap-2"><DollarSign className="h-3 w-3" />${musician.hourlyRate}/hr</div>
+          <div className="flex items-center gap-2"><DollarSign className="h-3 w-3" />${musician.pricePerSet}/set</div>
         </div>
         <div className="pt-2 border-t">
           {linked ? (
@@ -269,7 +269,7 @@ export function AdminMusiciansManager() {
   }
 
   const handleCreate = async () => {
-    const { name, email, phone, instruments, styles, hourlyRate, isActive, avatar } = form
+    const { name, email, phone, instruments, styles, pricePerSet, isActive, avatar } = form
     if (!name || !email || !phone) {
       sileo.error({ title: "Error", description: "Completa todos los campos obligatorios." })
       return
@@ -280,7 +280,7 @@ export function AdminMusiciansManager() {
         name, email, phone,
         instruments: instruments.split(",").map((s) => s.trim()).filter(Boolean),
         styles: styles.split(",").map((s) => s.trim()).filter(Boolean),
-        hourlyRate: Number(hourlyRate),
+        pricePerSet: Number(pricePerSet),
         isActive,
         avatar: avatar || undefined,
       })
@@ -338,8 +338,8 @@ export function AdminMusiciansManager() {
                 <Input id="m-phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
               </div>
               <div>
-                <Label htmlFor="m-rate">Tarifa por hora ($)</Label>
-                <Input id="m-rate" type="number" value={form.hourlyRate} onChange={(e) => setForm({ ...form, hourlyRate: Number(e.target.value) })} />
+                <Label htmlFor="m-rate">Tarifa por set ($)</Label>
+                <Input id="m-rate" type="number" value={form.pricePerSet} onChange={(e) => setForm({ ...form, pricePerSet: Number(e.target.value) })} />
               </div>
               <div>
                 <Label htmlFor="m-instruments">Instrumentos</Label>

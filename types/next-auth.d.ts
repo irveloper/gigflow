@@ -11,7 +11,7 @@ declare module "next-auth" {
       phone: string | undefined
       instruments: string[]
       styles: string[]
-      hourlyRate: number | undefined
+      pricePerSet: number | undefined
       location: string | undefined
       contactPerson: string | undefined
       hotelId: string | undefined
@@ -34,7 +34,7 @@ declare module "next-auth/jwt" {
     phone: string | undefined
     instruments: string[]
     styles: string[]
-    hourlyRate: number | undefined
+    pricePerSet: number | undefined
     location: string | undefined
     contactPerson: string | undefined
     hotelId: string | undefined

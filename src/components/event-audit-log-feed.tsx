@@ -41,9 +41,11 @@ const ACTION_LABELS: Record<EventAuditLogAction, string> = {
   CHECK_IN_CONFIRMED: "Check-in confirmed",
   CHECK_IN_REJECTED: "Check-in rejected",
   STATUS_CHANGED: "Status changed",
+  SETS_CHANGE: "Sets changed",
   FIELD_UPDATED: "Field updated",
   PRICE_CHANGED: "Price changed",
   EVENT_DELETED: "Event deleted",
+  PAYMENT_STATUS_CHANGED: "Payment status changed",
 }
 
 type ActionColor = "green" | "red" | "blue" | "gray" | "purple"
@@ -62,9 +64,11 @@ const ACTION_COLOR: Record<EventAuditLogAction, ActionColor> = {
   CHECK_IN_CONFIRMED: "green",
   CHECK_IN_REJECTED: "red",
   STATUS_CHANGED: "gray",
+  SETS_CHANGE: "blue",
   FIELD_UPDATED: "gray",
   PRICE_CHANGED: "purple",
   EVENT_DELETED: "red",
+  PAYMENT_STATUS_CHANGED: "purple",
 }
 
 const COLOR_CLASSES: Record<ActionColor, string> = {
@@ -96,9 +100,11 @@ function ActionIcon({ action }: { action: EventAuditLogAction }) {
     CHECK_IN_CONFIRMED: <CheckCircle className="h-3.5 w-3.5" />,
     CHECK_IN_REJECTED: <XCircle className="h-3.5 w-3.5" />,
     STATUS_CHANGED: <RefreshCw className="h-3.5 w-3.5" />,
+    SETS_CHANGE: <ArrowLeftRight className="h-3.5 w-3.5" />,
     FIELD_UPDATED: <Pencil className="h-3.5 w-3.5" />,
     PRICE_CHANGED: <DollarSign className="h-3.5 w-3.5" />,
     EVENT_DELETED: <Trash2 className="h-3.5 w-3.5" />,
+    PAYMENT_STATUS_CHANGED: <DollarSign className="h-3.5 w-3.5" />,
   }
   return <>{icons[action]}</>
 }
@@ -152,6 +158,8 @@ function buildDetail(action: EventAuditLogAction, metadata: Metadata | null): st
       return `${metadata.from === null ? "not set" : `$${metadata.from}`} → ${metadata.to === null ? "not set" : `$${metadata.to}`}`
     case "EVENT_DELETED":
       return `"${metadata.title}" deleted`
+    case "PAYMENT_STATUS_CHANGED":
+      return `${metadata.from} → ${metadata.to}${metadata.notes ? ` (${metadata.notes})` : ""}`
     default:
       return ""
   }

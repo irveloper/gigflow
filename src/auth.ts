@@ -81,7 +81,7 @@ export const {
           phone: dbUser.phone ?? undefined,
           instruments: dbUser.instruments,
           styles: dbUser.styles,
-          hourlyRate: dbUser.hourlyRate ?? undefined,
+          pricePerSet: dbUser.pricePerSet ?? undefined,
           location: dbUser.location ?? undefined,
           contactPerson: dbUser.contactPerson ?? undefined,
           hotelId: dbUser.hotelId ?? undefined,

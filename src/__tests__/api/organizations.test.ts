@@ -24,7 +24,6 @@ async function ensureOrg(id: string, slug: string) {
       stripePriceId: "price_starter_monthly",
       status: "active",
       seatLimit: 3,
-      currentPeriodStart: new Date(),
       currentPeriodEnd: new Date(Date.now() + 30 * 86_400_000),
     },
   })

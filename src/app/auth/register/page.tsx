@@ -34,7 +34,7 @@ export default function RegisterPage() {
     phone: "",
     instruments: [] as string[],
     hotel: "",
-    hourlyRate: 0,
+    pricePerSet: 0,
     location: "",
     contactPerson: "",
   })
@@ -68,7 +68,7 @@ export default function RegisterPage() {
         phone: formData.phone,
         instruments: formData.instruments,
         hotel: formData.hotel,
-        ...(formData.hourlyRate > 0 ? { hourlyRate: formData.hourlyRate } : {}),
+        ...(formData.pricePerSet > 0 ? { pricePerSet: formData.pricePerSet } : {}),
         location: formData.location,
         contactPerson: formData.contactPerson,
       })

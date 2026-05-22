@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { router, orgProcedure, managerProcedure, protectedProcedure } from "@/server/trpc"
-import { CreateEventInputSchema, EventSchema } from "@/entities/event/schema"
+import { CreateEventInputSchema, EventSchema, PaymentStatusSchema } from "@/entities/event/schema"
 import { CursorPaginationInputSchema } from "@/specs/entities/pagination.schema"
 import { eventsOverlap } from "@/entities/event/lib"
 import { writeEventAuditEntry, diffEventFields } from "@/server/lib/audit"
@@ -11,7 +11,7 @@ import type { PrismaClient } from "@prisma/client"
 type ConflictCheckInput = {
   date: string
   time: string
-  durationMinutes: number
+  sets: number
   musicianId?: string | null
   bandId?: string | null
   organizationId: string
@@ -43,17 +43,17 @@ async function assertNoPerformerConflict({
     select: {
       id: true,
       time: true,
-      durationMinutes: true,
+      sets: true,
       date: true,
       musicianId: true,
       bandId: true,
     },
   })
 
-  const candidate = { date: input.date, time: input.time, durationMinutes: input.durationMinutes }
+  const candidate = { date: input.date, time: input.time, sets: input.sets }
 
   for (const event of existingEvents) {
-    const existing = { date: event.date, time: event.time, durationMinutes: event.durationMinutes }
+    const existing = { date: event.date, time: event.time, sets: event.sets }
     if (!eventsOverlap(candidate, existing)) continue
 
     // Solo booking conflict checks
@@ -120,7 +120,7 @@ function mapEvent(e: {
   description: string | null
   date: string
   time: string
-  durationMinutes: number
+  sets: number
   hotel: string
   hotelId: string | null
   musician: string | null
@@ -133,6 +133,9 @@ function mapEvent(e: {
   checkInPhoto: string | null
   checkInLocation: unknown
   checkInComments: string | null
+  price?: number | null
+  paymentStatus?: string | null
+  paymentNotes?: string | null
   organizationId?: string | null
   organization?: { name: string; slug: string } | null
 }): Event {
@@ -142,7 +145,7 @@ function mapEvent(e: {
     description: e.description ?? undefined,
     date: e.date,
     time: e.time,
-    durationMinutes: e.durationMinutes,
+    sets: e.sets,
     hotel: e.hotel,
     hotelId: e.hotelId ?? undefined,
     musician: e.musician ?? undefined,
@@ -150,6 +153,9 @@ function mapEvent(e: {
     band: e.band ?? undefined,
     bandId: e.bandId ?? undefined,
     status: e.status as Event["status"],
+    price: e.price ?? null,
+    paymentStatus: (e.paymentStatus as Event["paymentStatus"]) ?? "pending",
+    paymentNotes: e.paymentNotes ?? null,
     checkedIn: e.checkedIn,
     checkInTime: e.checkInTime?.toISOString(),
     checkInPhoto: e.checkInPhoto ?? undefined,
@@ -329,13 +335,38 @@ export const eventsRouter = router({
       // Server-side scheduling conflict detection
       await assertNoPerformerConflict({ ctx, input: { ...input, organizationId: ctx.organizationId } })
 
+      // Look up performer rate — locked at booking time
+      let performerRate: number | null = null
+      if (input.musicianId) {
+        const musician = await ctx.prisma.musician.findUnique({
+          where: { id: input.musicianId },
+          select: { pricePerSet: true },
+        })
+        performerRate = musician?.pricePerSet ?? null
+      } else if (input.bandId) {
+        const band = await ctx.prisma.band.findUnique({
+          where: { id: input.bandId },
+          select: { pricePerSet: true },
+        })
+        performerRate = band?.pricePerSet ?? null
+      }
+
+      if ((input.musicianId || input.bandId) && performerRate === null) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "El artista no tiene tarifa por set configurada. Configura la tarifa antes de crear el evento.",
+        })
+      }
+
+      const price = performerRate !== null ? performerRate * input.sets : null
+
       const row = await ctx.prisma.event.create({
         data: {
           title: input.title,
           description: input.description ?? null,
           date: input.date,
           time: input.time,
-          durationMinutes: input.durationMinutes,
+          sets: input.sets,
           hotel: input.hotel,
           hotelId: input.hotelId ?? null,
           musician: input.musician ?? null,
@@ -343,6 +374,7 @@ export const eventsRouter = router({
           band: input.band ?? null,
           bandId: input.bandId ?? null,
           status: input.status,
+          price,
           organizationId: ctx.organizationId,
         },
       })
@@ -381,13 +413,47 @@ export const eventsRouter = router({
       }
 
       // Merge existing event with incoming partial data to build candidate for conflict check
-      if (input.data.musicianId || input.data.bandId || input.data.date || input.data.time || input.data.durationMinutes) {
+      if (input.data.musicianId || input.data.bandId || input.data.date || input.data.time || input.data.sets) {
         const merged = {
           ...existing,
           ...input.data,
           organizationId: ctx.organizationId!,
         }
         await assertNoPerformerConflict({ ctx, input: merged, ignoreEventId: input.id })
+      }
+
+      // Recalculate price when sets or performer changes
+      let updatedPrice: number | null | undefined = undefined
+      const performerChanged = input.data.musicianId !== undefined || input.data.bandId !== undefined
+      const setsChanged = input.data.sets !== undefined
+      if (performerChanged || setsChanged) {
+        const effectiveMusicianId = input.data.musicianId !== undefined ? input.data.musicianId : existing.musicianId
+        const effectiveBandId = input.data.bandId !== undefined ? input.data.bandId : existing.bandId
+        const effectiveSets = input.data.sets !== undefined ? input.data.sets : existing.sets
+
+        let performerRate: number | null = null
+        if (effectiveMusicianId) {
+          const musician = await ctx.prisma.musician.findUnique({
+            where: { id: effectiveMusicianId },
+            select: { pricePerSet: true },
+          })
+          performerRate = musician?.pricePerSet ?? null
+        } else if (effectiveBandId) {
+          const band = await ctx.prisma.band.findUnique({
+            where: { id: effectiveBandId },
+            select: { pricePerSet: true },
+          })
+          performerRate = band?.pricePerSet ?? null
+        }
+
+        if ((effectiveMusicianId || effectiveBandId) && performerRate === null) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "El artista no tiene tarifa por set configurada. Configura la tarifa antes de guardar el evento.",
+          })
+        }
+
+        updatedPrice = performerRate !== null ? performerRate * effectiveSets : null
       }
 
       const diff = diffEventFields(existing, input.data)
@@ -406,7 +472,7 @@ export const eventsRouter = router({
           description: input.data.description ?? null,
           date: input.data.date,
           time: input.data.time,
-          durationMinutes: input.data.durationMinutes,
+          sets: input.data.sets,
           hotel: input.data.hotel,
           hotelId: input.data.hotelId ?? null,
           musician: input.data.musician ?? null,
@@ -419,6 +485,7 @@ export const eventsRouter = router({
           checkInPhoto: input.data.checkInPhoto ?? null,
           checkInLocation: input.data.checkInLocation ?? undefined,
           checkInComments: input.data.checkInComments ?? null,
+          ...(updatedPrice !== undefined ? { price: updatedPrice } : {}),
         },
       })
 
@@ -456,6 +523,16 @@ export const eventsRouter = router({
           ...actorBase,
           action: "STATUS_CHANGED",
           metadata: { from: diff.statusChange.from, to: diff.statusChange.to },
+        })
+      }
+
+      // Sets change
+      if (diff.fieldChanges.some((c) => c.field === "sets")) {
+        const change = diff.fieldChanges.find((c) => c.field === "sets")!
+        await writeEventAuditEntry(ctx.prisma, {
+          ...actorBase,
+          action: "SETS_CHANGE",
+          metadata: { from: change.from, to: change.to },
         })
       }
 
@@ -558,6 +635,54 @@ export const eventsRouter = router({
         actorRole: (ctx.session.user.role as "manager" | "musician") ?? "musician",
         action: "CHECK_IN_RECORDED",
         metadata: { time: input.timestamp, location: input.location ?? null },
+      })
+
+      return mapEvent(updated)
+    }),
+
+  /**
+   * Update the payment status (and optional notes) for an event.
+   * Manager-only. Writes a PAYMENT_STATUS_CHANGED audit entry.
+   */
+  updatePaymentStatus: managerProcedure
+    .input(
+      z.object({
+        eventId: z.string(),
+        paymentStatus: PaymentStatusSchema,
+        paymentNotes: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.organizationId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "No organization context" })
+      }
+
+      const existing = await ctx.prisma.event.findUnique({ where: { id: input.eventId } })
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND" })
+      if (existing.organizationId !== ctx.organizationId) {
+        throw new TRPCError({ code: "FORBIDDEN" })
+      }
+
+      const updated = await ctx.prisma.event.update({
+        where: { id: input.eventId },
+        data: {
+          paymentStatus: input.paymentStatus,
+          paymentNotes: input.paymentNotes ?? null,
+        },
+      })
+
+      await writeEventAuditEntry(ctx.prisma, {
+        eventId: existing.id,
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        actorName: ctx.session.user.name ?? ctx.session.user.email ?? "Unknown",
+        actorRole: "manager",
+        action: "PAYMENT_STATUS_CHANGED",
+        metadata: {
+          from: existing.paymentStatus,
+          to: input.paymentStatus,
+          notes: input.paymentNotes ?? null,
+        },
       })
 
       return mapEvent(updated)

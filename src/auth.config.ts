@@ -23,7 +23,7 @@ export default {
           phone?: string
           instruments: string[]
           styles: string[]
-          hourlyRate?: number
+          pricePerSet?: number
           location?: string
           contactPerson?: string
           hotelId?: string
@@ -39,7 +39,7 @@ export default {
         token.phone = u.phone
         token.instruments = u.instruments ?? []
         token.styles = u.styles ?? []
-        token.hourlyRate = u.hourlyRate
+        token.pricePerSet = u.pricePerSet
         token.location = u.location
         token.contactPerson = u.contactPerson
         token.hotelId = u.hotelId
@@ -58,7 +58,7 @@ export default {
       session.user.phone = token.phone as string | undefined
       session.user.instruments = (token.instruments as string[]) ?? []
       session.user.styles = (token.styles as string[]) ?? []
-      session.user.hourlyRate = token.hourlyRate as number | undefined
+      session.user.pricePerSet = token.pricePerSet as number | undefined
       session.user.location = token.location as string | undefined
       session.user.contactPerson = token.contactPerson as string | undefined
       session.user.hotelId = token.hotelId as string | undefined

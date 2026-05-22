@@ -10,7 +10,13 @@ type PrismaHotel = {
   name: string
   email: string
   phone: string
-  location: string
+  address: string
+  city: string
+  state: string
+  stateCode: string
+  countryCode: string
+  country: string
+  postalCode: string
   contactPerson: string
   isActive: boolean
   avatar: string | null
@@ -29,7 +35,13 @@ function mapHotel(h: PrismaHotel, orgLink?: OrgLink): Hotel {
     name: h.name,
     email: h.email,
     phone: h.phone,
-    location: h.location,
+    address: h.address,
+    city: h.city,
+    state: h.state,
+    stateCode: h.stateCode,
+    countryCode: h.countryCode,
+    country: h.country,
+    postalCode: h.postalCode,
     contactPerson: orgLink?.contactPerson ?? h.contactPerson,
     isActive: h.isActive,
     avatar: h.avatar ?? undefined,
@@ -125,7 +137,13 @@ export const hotelsRouter = router({
           name: input.name,
           email: input.email,
           phone: input.phone,
-          location: input.location,
+          address: input.address,
+          city: input.city,
+          state: input.state,
+          stateCode: input.stateCode,
+          countryCode: input.countryCode,
+          country: input.country,
+          postalCode: input.postalCode,
           contactPerson: input.contactPerson,
           isActive: input.isActive ?? true,
           avatar: input.avatar ?? null,
@@ -167,7 +185,13 @@ export const hotelsRouter = router({
           name: input.name,
           email: input.email,
           phone: input.phone,
-          location: input.location,
+          address: input.address,
+          city: input.city,
+          state: input.state,
+          stateCode: input.stateCode,
+          countryCode: input.countryCode,
+          country: input.country,
+          postalCode: input.postalCode,
           contactPerson: input.contactPerson,
           isActive: input.isActive,
           avatar: input.avatar ?? null,

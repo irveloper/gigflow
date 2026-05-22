@@ -46,7 +46,7 @@ describe("musicians model", () => {
         phone: "+52 998 555 0000",
         instruments: ["Voice"],
         styles: ["Soul", "R&B"],
-        hourlyRate: 950,
+        pricePerSet: 950,
         isActive: true,
       }
       const scope = fork({
@@ -68,7 +68,7 @@ describe("musicians model", () => {
       expect(created.name).toBe("Lucia Torres")
       expect(created.id).toBeTruthy()
       expect(created.createdAt).toBeTruthy()
-      expect(created.hourlyRate).toBe(950)
+      expect(created.pricePerSet).toBe(950)
     })
 
     it("manager updates a musician", async () => {
@@ -77,12 +77,12 @@ describe("musicians model", () => {
         handlers: [[updateMusicianFx, (musician: Musician) => musician]],
       })
 
-      const updated = { ...musicianFixtures.carlos, hourlyRate: 1000 }
+      const updated = { ...musicianFixtures.carlos, pricePerSet: 1000 }
       await allSettled(musicianUpdated, { scope, params: updated })
 
       const musicians = scope.getState($musicians)
       const found = musicians.find((m) => m.id === musicianFixtures.carlos.id)
-      expect(found?.hourlyRate).toBe(1000)
+      expect(found?.pricePerSet).toBe(1000)
     })
 
     it("manager deletes a musician", async () => {

@@ -23,13 +23,25 @@ export const hotelsScenarios = {
           name: "Hotel Fiesta",
           email: "eventos@fiesta.mx",
           phone: "+52 998 555 1111",
-          location: "Cancún Centro",
+          address: "Av. Tulum 123",
+          city: "Cancún",
+          state: "Quintana Roo",
+          stateCode: "ROO",
+          countryCode: "MX",
+          country: "Mexico",
+          postalCode: "77500",
           contactPerson: "Paola Rivera",
           isActive: true,
         },
       },
       when: "hotelCreated is triggered",
       then: ["new hotel is added to $hotels with generated id and createdAt"],
+    },
+
+    "hotel with non-Mexico country displays correct location label": {
+      given: { hotel: "grandHyatt fixture (US, New York, NY)" },
+      when: "hotel card is rendered",
+      then: ["location displays as 'New York, New York, United States'"],
     },
 
     "manager toggles hotel active state": {

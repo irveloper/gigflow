@@ -41,7 +41,7 @@ type EventSnapshot = {
   description?: string | null
   date?: string | null
   time?: string | null
-  durationMinutes?: number | null
+  sets?: number | null
   hotel?: string | null
   hotelId?: string | null
   musician?: string | null
@@ -64,7 +64,6 @@ const SCALAR_FIELDS: (keyof EventSnapshot)[] = [
   "description",
   "date",
   "time",
-  "durationMinutes",
   "hotel",
   "hotelId",
 ]

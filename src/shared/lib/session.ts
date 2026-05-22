@@ -13,7 +13,7 @@ export function sessionToUser(sessionUser: SessionUser): User {
     phone: sessionUser.phone,
     instruments: sessionUser.instruments ?? [],
     styles: sessionUser.styles ?? [],
-    hourlyRate: sessionUser.hourlyRate,
+    pricePerSet: sessionUser.pricePerSet,
     location: sessionUser.location,
     contactPerson: sessionUser.contactPerson,
     isActive: sessionUser.isActive ?? true,

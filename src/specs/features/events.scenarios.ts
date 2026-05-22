@@ -67,7 +67,7 @@ export const eventsScenarios = {
         "new event appears in $events with generated id",
         "event status is 'scheduled'",
         "checkedIn is false",
-        "durationMinutes is preserved for scheduling views",
+        "sets is preserved for scheduling views",
       ],
     },
 
@@ -130,7 +130,7 @@ export const eventsScenarios = {
       when: "event is converted for calendar rendering",
       then: [
         "calendar start uses Event.date + Event.time",
-        "calendar end is derived from durationMinutes",
+        "calendar end is derived from sets",
         "the original event remains available for click handling",
       ],
       expectedEnd: `${eventFixtures.todayAcoustic.date}T21:00:00`,
@@ -173,7 +173,7 @@ export const eventsScenarios = {
           musicianId: "user-1", // carlos — member of jazzTrio
           bandId: undefined,
           time: "20:00",
-          durationMinutes: 60,
+          sets: 1,
         },
         existing: [
           {
@@ -182,7 +182,7 @@ export const eventsScenarios = {
             musicianId: undefined,
             bandId: "band-1", // jazzTrio — has carlos as member
             time: "20:30",
-            durationMinutes: 60,
+            sets: 1,
           },
         ],
         bandMemberIds: { "band-1": ["user-1", "user-4"] },
@@ -200,7 +200,7 @@ export const eventsScenarios = {
           musicianId: undefined,
           bandId: "band-1", // jazzTrio — has carlos (user-1)
           time: "20:00",
-          durationMinutes: 60,
+          sets: 1,
         },
         existing: [
           {
@@ -209,7 +209,7 @@ export const eventsScenarios = {
             musicianId: "user-1", // carlos — member of jazzTrio
             bandId: undefined,
             time: "20:30",
-            durationMinutes: 60,
+            sets: 1,
           },
         ],
         bandMemberIds: { "band-1": ["user-1", "user-4"] },
@@ -227,7 +227,7 @@ export const eventsScenarios = {
           musicianId: undefined,
           bandId: "band-2", // flamencoGroup — has carlos (user-1)
           time: "20:00",
-          durationMinutes: 60,
+          sets: 1,
         },
         existing: [
           {
@@ -236,7 +236,7 @@ export const eventsScenarios = {
             musicianId: undefined,
             bandId: "band-1", // jazzTrio — also has carlos (user-1)
             time: "20:00",
-            durationMinutes: 60,
+            sets: 1,
           },
         ],
         bandMemberIds: {
@@ -249,6 +249,13 @@ export const eventsScenarios = {
       expectedConflictIds: ["existing-band-1"],
     },
 
+    "calendar end is derived from sets not minutes": {
+      given: { event: { ...eventFixtures.todayAcoustic, sets: 2, time: "19:00" } },
+      when: "event is converted for calendar rendering",
+      then: ["calendar end = start + sets * 60 minutes"],
+      expectedEnd: `${eventFixtures.todayAcoustic.date}T21:00:00`,
+    },
+
     "no conflict: same musician, non-overlapping solo + band slots": {
       given: {
         candidate: {
@@ -257,7 +264,7 @@ export const eventsScenarios = {
           musicianId: "user-1", // carlos
           bandId: undefined,
           time: "22:00",
-          durationMinutes: 60,
+          sets: 1,
         },
         existing: [
           {
@@ -266,7 +273,7 @@ export const eventsScenarios = {
             musicianId: undefined,
             bandId: "band-1", // jazzTrio — has carlos, ends at 21:00
             time: "20:00",
-            durationMinutes: 60,
+            sets: 1,
           },
         ],
         bandMemberIds: { "band-1": ["user-1", "user-4"] },
@@ -274,6 +281,38 @@ export const eventsScenarios = {
       when: "schedule conflict validation runs",
       then: ["no conflict: slots do not overlap (band ends 21:00, solo starts 22:00)"],
       expectedConflictIds: [],
+    },
+  },
+  pricing: {
+    "event cost is calculated as sets × pricePerSet": {
+      given: {
+        sets: 3,
+        performerPricePerSet: 800,
+      },
+      when: "event is created",
+      then: ["event.price = 3 × 800 = 2400", "price is locked at booking time"],
+      expectedPrice: 2400,
+    },
+
+    "event creation is blocked when performer has no pricePerSet": {
+      given: {
+        sets: 2,
+        performerPricePerSet: null,
+      },
+      when: "event creation is attempted",
+      then: ["BAD_REQUEST error is thrown", "event is not persisted"],
+      expectedError: "BAD_REQUEST",
+    },
+
+    "price is recalculated when sets change on update": {
+      given: {
+        existingSets: 2,
+        newSets: 4,
+        performerPricePerSet: 1000,
+      },
+      when: "event is updated with new sets value",
+      then: ["event.price = 4 × 1000 = 4000", "SETS_CHANGE audit entry is written"],
+      expectedPrice: 4000,
     },
   },
 } as const

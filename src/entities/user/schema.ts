@@ -12,7 +12,7 @@ export const UserSchema = z.object({
   // musician-specific
   instruments: z.array(z.string()).optional(),
   styles: z.array(z.string()).optional(),
-  hourlyRate: z.number().positive().optional(),
+  pricePerSet: z.number().positive().optional(),
   musicianId: z.string().optional(),
   // hotel-specific
   hotel: z.string().optional(),
@@ -40,7 +40,7 @@ export const RegisterInputSchema = z.object({
   // musician-specific
   instruments: z.array(z.string()).optional(),
   styles: z.array(z.string()).optional(),
-  hourlyRate: z.number().positive().optional(),
+  pricePerSet: z.number().positive().optional(),
   // hotel-specific
   hotel: z.string().optional(),
   location: z.string().optional(),

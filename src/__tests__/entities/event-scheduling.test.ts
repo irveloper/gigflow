@@ -49,7 +49,7 @@ describe("event scheduling helpers", () => {
 
     expect(moved.date).toBe("2026-04-23")
     expect(moved.time).toBe("18:15")
-    expect(moved.durationMinutes).toBe(eventFixtures.todayAcoustic.durationMinutes)
+    expect(moved.sets).toBe(eventFixtures.todayAcoustic.sets)
     expect(getEventTimeLabel(moved)).toBe("18:15 - 20:15")
   })
 })

@@ -25,7 +25,6 @@ beforeAll(async () => {
       stripePriceId: "price_starter_monthly",
       status: "active",
       seatLimit: 10,
-      currentPeriodStart: new Date(),
       currentPeriodEnd: new Date(Date.now() + 30 * 86_400_000),
     },
   })
@@ -62,9 +61,9 @@ describe("musicians router", () => {
       name: "Integration Musician",
       email: `musician-int-${Date.now()}@test.com`,
       phone: "+52 998 000 0001",
-      instruments: ["Jazz"],
-      styles: [],
-      hourlyRate: 500,
+      instruments: ["Guitar"],
+      styles: ["Jazz"],
+      pricePerSet: 500,
       isActive: true,
     })
     expect(musician.id).toBeTruthy()
@@ -77,13 +76,13 @@ describe("musicians router", () => {
       name: "Update Musician",
       email: `musician-upd-${Date.now()}@test.com`,
       phone: "+52 998 000 0002",
-      instruments: ["Rock"],
-      styles: [],
-      hourlyRate: 600,
+      instruments: ["Guitar"],
+      styles: ["Rock"],
+      pricePerSet: 600,
       isActive: true,
     })
-    const updated = await caller.musicians.update({ ...musician, hourlyRate: 700 })
-    expect(updated.hourlyRate).toBe(700)
+    const updated = await caller.musicians.update({ ...musician, pricePerSet: 700 })
+    expect(updated.pricePerSet).toBe(700)
   })
 
   it("delete musician", async () => {
@@ -92,9 +91,9 @@ describe("musicians router", () => {
       name: "Delete Musician",
       email: `musician-del-${Date.now()}@test.com`,
       phone: "+52 998 000 0003",
-      instruments: [],
-      styles: [],
-      hourlyRate: 400,
+      instruments: ["Guitar"],
+      styles: ["Jazz"],
+      pricePerSet: 400,
       isActive: true,
     })
     await caller.musicians.delete({ id: musician.id })

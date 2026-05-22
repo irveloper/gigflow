@@ -14,9 +14,11 @@ export const EventAuditLogActionSchema = z.enum([
   "CHECK_IN_CONFIRMED",
   "CHECK_IN_REJECTED",
   "STATUS_CHANGED",
+  "SETS_CHANGE",
   "FIELD_UPDATED",
   "PRICE_CHANGED",
   "EVENT_DELETED",
+  "PAYMENT_STATUS_CHANGED",
 ])
 
 export const EventAuditLogSchema = z.object({

@@ -24,7 +24,7 @@ export default function MusicianDetailPage() {
   const [musician, setMusician] = useState<Musician | null>(null)
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState({
-    name: "", email: "", phone: "", instruments: "", hourlyRate: 0, isActive: true,
+    name: "", email: "", phone: "", instruments: "", pricePerSet: 0, isActive: true,
   })
   const [saving, setSaving] = useState(false)
 
@@ -38,7 +38,7 @@ export default function MusicianDetailPage() {
           email: m.email,
           phone: m.phone,
           instruments: m.instruments.join(", "),
-          hourlyRate: m.hourlyRate,
+          pricePerSet: m.pricePerSet,
           isActive: m.isActive,
         })
       } catch {
@@ -61,7 +61,7 @@ export default function MusicianDetailPage() {
         phone: form.phone,
         instruments: form.instruments.split(",").map((s) => s.trim()).filter(Boolean),
         styles: musician.styles,
-        hourlyRate: Number(form.hourlyRate),
+        pricePerSet: Number(form.pricePerSet),
         isActive: form.isActive,
         createdAt: musician.createdAt,
       })
@@ -149,8 +149,8 @@ export default function MusicianDetailPage() {
               <Input id="m-phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             </div>
             <div>
-              <Label htmlFor="m-rate">Tarifa por hora ($)</Label>
-              <Input id="m-rate" type="number" value={form.hourlyRate} onChange={(e) => setForm({ ...form, hourlyRate: Number(e.target.value) })} />
+              <Label htmlFor="m-rate">Tarifa por set ($)</Label>
+              <Input id="m-rate" type="number" value={form.pricePerSet} onChange={(e) => setForm({ ...form, pricePerSet: Number(e.target.value) })} />
             </div>
             <div>
               <Label htmlFor="m-active">Estado</Label>
