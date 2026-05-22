@@ -19,3 +19,4 @@ export type {
   MusicianOrganization,
 } from "@/entities/organization/schema"
 export type { Subscription, SubscriptionStatus } from "@/entities/subscription/schema"
+export type { EventAuditLog, EventAuditLogAction } from "@/entities/event-audit-log/schema"

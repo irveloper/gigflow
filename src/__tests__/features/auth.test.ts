@@ -27,6 +27,8 @@ import { userFixtures } from "@/shared/mocks/users"
 import {
   loginSubmitted,
   loginFx,
+  registerSubmitted,
+  registerFx,
   checkAuth,
   checkAuthFx,
   logout,
@@ -96,6 +98,23 @@ describe("auth model", () => {
 
       expect(scope.getState($user)).toBeNull()
       expect(scope.getState($authError)).toBeTruthy()
+    })
+  })
+
+  describe("register", () => {
+    it("new org owner registers with manager role", async () => {
+      const managerFixture = { ...managerUser, id: "new-manager", email: "newowner@test.com", organizationId: undefined, organizationSlug: undefined }
+      const scope = fork({
+        handlers: [[registerFx, () => managerFixture]],
+      })
+
+      await allSettled(registerSubmitted, {
+        scope,
+        params: { email: "newowner@test.com", password: "123456", name: "New Owner", role: "manager" as const },
+      })
+
+      expect(scope.getState($user)?.role).toBe("manager")
+      expect(scope.getState($authError)).toBeNull()
     })
   })
 
@@ -227,6 +246,21 @@ describe("auth model", () => {
       expect(shouldRedirect(new Date())).toBe(false)
       expect(shouldRedirect(null)).toBe(false)
       expect(shouldRedirect(undefined)).toBe(false)
+    })
+
+    // Scenario: manager with verified email + no org — middleware Guard A redirects them to /auth/pending.
+    // This test covers the model state: user is stored correctly and has no org slug.
+    it("manager with verified email and no org has no organizationSlug after checkAuth", async () => {
+      const verifiedNoOrgUser = userFixtures.verifiedNoOrg
+      const scope = fork({
+        handlers: [[checkAuthFx, () => verifiedNoOrgUser]],
+      })
+
+      await allSettled(checkAuth, { scope })
+
+      expect(scope.getState($user)?.role).toBe("manager")
+      expect(scope.getState($user)?.organizationSlug).toBeUndefined()
+      expect(scope.getState($user)?.organizationId).toBeUndefined()
     })
 
     // Scenario: unverified user — should match the middleware guard.

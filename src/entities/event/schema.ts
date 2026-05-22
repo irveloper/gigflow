@@ -22,6 +22,7 @@ export const EventSchema = z.object({
   band: z.string().optional(),       // display name (band booking)
   bandId: z.string().optional(),     // relation key (band booking)
   status: EventStatusSchema,
+  price: z.number().nullable().optional(),
   checkedIn: z.boolean().default(false),
   checkInTime: z.string().optional(),
   checkInPhoto: z.string().optional(),

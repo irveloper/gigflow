@@ -30,7 +30,7 @@ export default function RegisterPage() {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "" as "musician" | "hotel" | "",
+    role: "" as "musician" | "hotel" | "manager" | "",
     phone: "",
     instruments: [] as string[],
     hotel: "",
@@ -136,16 +136,32 @@ export default function RegisterPage() {
                 <Label htmlFor="role">Tipo de cuenta *</Label>
                 <Select
                   value={formData.role}
-                  onValueChange={(value: "musician" | "hotel") => setFormData({ ...formData, role: value })}
+                  onValueChange={(value: "musician" | "hotel" | "manager") => setFormData({ ...formData, role: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona tu rol" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="manager">Org Owner</SelectItem>
                     <SelectItem value="musician">Músico</SelectItem>
                     <SelectItem value="hotel">Hotel</SelectItem>
                   </SelectContent>
                 </Select>
+                {formData.role === "manager" && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Crea y administra tu organización, músicos, hoteles y eventos.
+                  </p>
+                )}
+                {formData.role === "musician" && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Un admin de organización te invitará a unirte.
+                  </p>
+                )}
+                {formData.role === "hotel" && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Un admin de organización te añadirá a su plataforma.
+                  </p>
+                )}
               </div>
 
               <div>

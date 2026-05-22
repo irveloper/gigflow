@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { Music, CheckCircle, Loader2 } from "lucide-react"
 import { trpc } from "@/shared/lib/trpc"
 
@@ -11,6 +12,7 @@ const MAX_ATTEMPTS = 15 // 30 seconds total
 export default function OnboardingSuccessPage() {
   const router = useRouter()
   const params = useSearchParams()
+  const { update } = useSession()
   const slug = params.get("slug")
   const [status, setStatus] = useState<"polling" | "ready" | "timeout">("polling")
   const attempts = useRef(0)
@@ -44,8 +46,10 @@ export default function OnboardingSuccessPage() {
       setTimeout(poll, POLL_INTERVAL_MS)
     }
 
-    setTimeout(poll, POLL_INTERVAL_MS)
-  }, [slug, router])
+    // Flush the JWT before polling — the Stripe webhook updates organizationId in the DB
+    // but cannot refresh the session. Without this, orgProcedure throws on the first attempt.
+    update().then(() => setTimeout(poll, POLL_INTERVAL_MS))
+  }, [slug, router, update])
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">

@@ -9,6 +9,10 @@ export async function createOrgAction(name: string, slug: string): Promise<{ slu
     throw new Error("Unauthorized")
   }
 
+  if (session.user.role !== "manager") {
+    throw new Error("Unauthorized")
+  }
+
   const existing = await prisma.organization.findUnique({ where: { slug } })
   if (existing) {
     throw new Error("Este slug ya está en uso. Elige otro.")

@@ -91,7 +91,7 @@ function buildCsp(nonce: string): string {
 // ---------------------------------------------------------------------------
 
 // Routes that require authentication
-const PROTECTED_ROUTES = ["/", "/calendar", "/profile", "/notifications", "/reports", "/admin", "/hotel", "/check-in", "/org", "/superadmin"]
+const PROTECTED_ROUTES = ["/", "/calendar", "/profile", "/notifications", "/reports", "/admin", "/hotel", "/check-in", "/org", "/superadmin", "/account"]
 
 // Routes that authenticated users should NOT access (pending is excluded — it's for authenticated users)
 const AUTH_ROUTES = ["/auth/login", "/auth/register"]
@@ -153,6 +153,25 @@ export async function middleware(request: NextRequest) {
     // Block unverified users from reaching the org-creation page directly.
     if (pathname.startsWith("/org/new") && session?.user && !session.user.emailVerified) {
       return NextResponse.redirect(new URL("/auth/pending?verify=1", request.url))
+    }
+
+    // Guard A: org owner with verified email but no org → send back to complete onboarding.
+    if (
+      session?.user?.role === "manager" &&
+      session.user.emailVerified &&
+      !session.user.organizationId
+    ) {
+      return NextResponse.redirect(new URL("/auth/pending", request.url))
+    }
+
+    // Guard B: member (musician/hotel) with verified email but no org → waiting-for-invite page.
+    if (
+      (session?.user?.role === "musician" || session?.user?.role === "hotel") &&
+      session.user.emailVerified &&
+      !session.user.organizationId &&
+      !pathname.startsWith("/account/pending-org")
+    ) {
+      return NextResponse.redirect(new URL("/account/pending-org", request.url))
     }
 
     // Redirect org users from legacy non-org routes to their org-scoped equivalent.

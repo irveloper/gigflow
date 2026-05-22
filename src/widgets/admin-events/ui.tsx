@@ -29,7 +29,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Calendar, Plus, Edit, Trash2, Users, MapPin, Clock, AlertTriangle, XCircle, CheckCircle } from "lucide-react"
+import Link from "next/link"
+import { Calendar, Plus, Edit, Trash2, Users, MapPin, Clock, AlertTriangle, XCircle, CheckCircle, History } from "lucide-react"
 import { getEventTimeLabel, getSchedulingConflicts, getEventStatusLabel, getCalendarEventTone } from "@/entities/event"
 import { eventsModel } from "@/features/events"
 import { hotelsModel } from "@/features/hotels"
@@ -403,6 +404,11 @@ export function AdminEventsManager() {
                               )}
                               <Button variant="ghost" size="sm" onClick={() => { setEventToEdit(event); setFormData(eventToForm(event)); setEditConflict(null) }}>
                                 <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700" title="Audit log" asChild>
+                                <Link href={`/org/${user?.organizationSlug}/admin/events/${event.id}`}>
+                                  <History className="h-4 w-4" />
+                                </Link>
                               </Button>
                               <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => setEventToDelete(event)}>
                                 <Trash2 className="h-4 w-4" />

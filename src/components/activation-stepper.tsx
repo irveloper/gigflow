@@ -4,20 +4,28 @@ import { Fragment } from "react"
 import { Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const STEPS = [
+const MANAGER_STEPS = [
   { label: "Verify email" },
-  { label: "Create organization" },
+  { label: "Choose a plan" },
   { label: "Dashboard" },
+]
+
+const MEMBER_STEPS = [
+  { label: "Verify email" },
+  { label: "Account active" },
 ]
 
 interface ActivationStepperProps {
   currentStep: 1 | 2 | 3
+  variant?: "manager" | "member"
 }
 
-export function ActivationStepper({ currentStep }: ActivationStepperProps) {
+export function ActivationStepper({ currentStep, variant = "manager" }: ActivationStepperProps) {
+  const steps = variant === "member" ? MEMBER_STEPS : MANAGER_STEPS
+
   return (
     <div className="flex items-center justify-between w-full max-w-sm mx-auto mb-6">
-      {STEPS.map((step, i) => {
+      {steps.map((step, i) => {
         const stepNumber = i + 1
         const isCompleted = stepNumber < currentStep
         const isCurrent = stepNumber === currentStep
@@ -46,7 +54,7 @@ export function ActivationStepper({ currentStep }: ActivationStepperProps) {
               </span>
             </div>
 
-            {i < STEPS.length - 1 && (
+            {i < steps.length - 1 && (
               <div
                 className={cn(
                   "flex-1 h-px mx-2 mb-5 transition-colors",

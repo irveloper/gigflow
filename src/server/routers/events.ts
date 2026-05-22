@@ -4,6 +4,7 @@ import { router, orgProcedure, managerProcedure, protectedProcedure } from "@/se
 import { CreateEventInputSchema, EventSchema } from "@/entities/event/schema"
 import { CursorPaginationInputSchema } from "@/specs/entities/pagination.schema"
 import { eventsOverlap } from "@/entities/event/lib"
+import { writeEventAuditEntry, diffEventFields } from "@/server/lib/audit"
 import type { Event } from "@/shared/types"
 import type { PrismaClient } from "@prisma/client"
 
@@ -345,6 +346,17 @@ export const eventsRouter = router({
           organizationId: ctx.organizationId,
         },
       })
+
+      await writeEventAuditEntry(ctx.prisma, {
+        eventId: row.id,
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        actorName: ctx.session.user.name ?? ctx.session.user.email ?? "Unknown",
+        actorRole: "manager",
+        action: "EVENT_CREATED",
+        metadata: { title: row.title },
+      })
+
       return mapEvent(row)
     }),
 
@@ -378,6 +390,15 @@ export const eventsRouter = router({
         await assertNoPerformerConflict({ ctx, input: merged, ignoreEventId: input.id })
       }
 
+      const diff = diffEventFields(existing, input.data)
+      const actorBase = {
+        eventId: input.id,
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        actorName: ctx.session.user.name ?? ctx.session.user.email ?? "Unknown",
+        actorRole: "manager" as const,
+      }
+
       const row = await ctx.prisma.event.update({
         where: { id: input.id },
         data: {
@@ -400,6 +421,62 @@ export const eventsRouter = router({
           checkInComments: input.data.checkInComments ?? null,
         },
       })
+
+      // Musician change
+      if (diff.musicianChange) {
+        const { from, to } = diff.musicianChange
+        const action = from === null ? "MUSICIAN_ASSIGNED" : to === null ? "MUSICIAN_REMOVED" : "MUSICIAN_CHANGED"
+        await writeEventAuditEntry(ctx.prisma, {
+          ...actorBase,
+          action,
+          metadata: {
+            from: from ? { musicianId: from, musicianName: existing.musician } : null,
+            to: to ? { musicianId: to, musicianName: input.data.musician } : null,
+          },
+        })
+      }
+
+      // Band change
+      if (diff.bandChange) {
+        const { from, to } = diff.bandChange
+        const action = from === null ? "BAND_ASSIGNED" : to === null ? "BAND_REMOVED" : "BAND_CHANGED"
+        await writeEventAuditEntry(ctx.prisma, {
+          ...actorBase,
+          action,
+          metadata: {
+            from: from ? { bandId: from, bandName: existing.band } : null,
+            to: to ? { bandId: to, bandName: input.data.band } : null,
+          },
+        })
+      }
+
+      // Status change
+      if (diff.statusChange) {
+        await writeEventAuditEntry(ctx.prisma, {
+          ...actorBase,
+          action: "STATUS_CHANGED",
+          metadata: { from: diff.statusChange.from, to: diff.statusChange.to },
+        })
+      }
+
+      // Price change
+      if (diff.priceChange) {
+        await writeEventAuditEntry(ctx.prisma, {
+          ...actorBase,
+          action: "PRICE_CHANGED",
+          metadata: { from: diff.priceChange.from, to: diff.priceChange.to },
+        })
+      }
+
+      // Generic scalar field changes
+      for (const change of diff.fieldChanges) {
+        await writeEventAuditEntry(ctx.prisma, {
+          ...actorBase,
+          action: "FIELD_UPDATED",
+          metadata: { field: change.field, from: change.from, to: change.to },
+        })
+      }
+
       return mapEvent(row)
     }),
 
@@ -415,6 +492,16 @@ export const eventsRouter = router({
       if (existing.organizationId !== ctx.organizationId) {
         throw new TRPCError({ code: "FORBIDDEN" })
       }
+
+      await writeEventAuditEntry(ctx.prisma, {
+        eventId: existing.id,
+        organizationId: existing.organizationId,
+        actorId: ctx.session.user.id,
+        actorName: ctx.session.user.name ?? ctx.session.user.email ?? "Unknown",
+        actorRole: "manager",
+        action: "EVENT_DELETED",
+        metadata: { title: existing.title },
+      })
 
       await ctx.prisma.event.delete({ where: { id: input.id } })
     }),
@@ -462,6 +549,17 @@ export const eventsRouter = router({
           checkInComments: input.comments ?? null,
         },
       })
+
+      await writeEventAuditEntry(ctx.prisma, {
+        eventId: row.id,
+        organizationId: row.organizationId,
+        actorId: ctx.session.user.id,
+        actorName: ctx.session.user.name ?? ctx.session.user.email ?? "Unknown",
+        actorRole: (ctx.session.user.role as "manager" | "musician") ?? "musician",
+        action: "CHECK_IN_RECORDED",
+        metadata: { time: input.timestamp, location: input.location ?? null },
+      })
+
       return mapEvent(updated)
     }),
 })

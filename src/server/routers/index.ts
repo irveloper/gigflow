@@ -3,6 +3,7 @@ import { authRouter } from "./auth"
 import { adminRouter } from "./admin"
 import { bandsRouter } from "./bands"
 import { billingRouter } from "./billing"
+import { eventAuditLogsRouter } from "./event-audit-logs"
 import { eventsRouter } from "./events"
 import { hotelsRouter } from "./hotels"
 import { musiciansRouter } from "./musicians"
@@ -14,6 +15,7 @@ export const appRouter = router({
   admin: adminRouter,
   bands: bandsRouter,
   billing: billingRouter,
+  eventAuditLogs: eventAuditLogsRouter,
   events: eventsRouter,
   hotels: hotelsRouter,
   musicians: musiciansRouter,

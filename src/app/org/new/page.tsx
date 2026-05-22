@@ -84,7 +84,7 @@ export default function NewOrgPage() {
           <h1 className="text-3xl font-bold text-gray-900">Gigflow</h1>
         </div>
 
-        <ActivationStepper currentStep={2} />
+        <ActivationStepper currentStep={2} variant="manager" />
 
         <Card>
           <CardHeader className="text-center">

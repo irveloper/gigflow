@@ -260,6 +260,7 @@ model Event {
   checkInPhoto    String?
   checkInLocation Json?     // { lat: Float, lng: Float }
   checkInComments String?
+  price           Float?    // null = no price set
   // org tenant — backfilled and non-nullable after migration 20260517000000
   organizationId  String
   createdAt       DateTime  @default(now())
@@ -297,6 +298,21 @@ model LoginAuditLog {
 
   @@index([userId])
   @@index([timestamp])
+}
+
+model EventAuditLog {
+  id             String   @id @default(cuid())
+  eventId        String
+  organizationId String
+  actorId        String?
+  actorName      String
+  actorRole      String   // "manager" | "musician" | "system"
+  action         String   // EVENT_CREATED | MUSICIAN_ASSIGNED | ... (see EventAuditLogActionSchema)
+  metadata       Json?
+  timestamp      DateTime @default(now())
+
+  @@index([eventId, timestamp(sort: Desc)])
+  @@index([organizationId])
 }
 
 model Notification {
