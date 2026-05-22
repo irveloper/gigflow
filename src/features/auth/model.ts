@@ -16,7 +16,7 @@ export const registerSubmitted = createEvent<{
   instruments?: string[]
   styles?: string[]
   hotel?: string
-  hourlyRate?: number
+  pricePerSet?: number
   location?: string
   contactPerson?: string
 }>()
@@ -40,7 +40,7 @@ export const registerFx = createEffect<
     instruments?: string[]
   styles?: string[]
     hotel?: string
-    hourlyRate?: number
+    pricePerSet?: number
     location?: string
     contactPerson?: string
   },

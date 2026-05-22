@@ -26,9 +26,15 @@ import { $organization } from "@/entities/organization/model"
 import { trpc } from "@/shared/lib/trpc"
 import { sileo } from "sileo"
 import type { Hotel } from "@/shared/types"
+import { LocationSelect, type LocationValue } from "@/shared/ui/location-select"
+
+const EMPTY_LOCATION: LocationValue = {
+  countryCode: "", country: "", stateCode: "", state: "", city: "",
+}
 
 const EMPTY_FORM = {
-  name: "", location: "", contactPerson: "", email: "", phone: "", isActive: true, avatar: "",
+  name: "", address: "", postalCode: "", contactPerson: "", email: "", phone: "", isActive: true, avatar: "",
+  ...EMPTY_LOCATION,
 }
 
 function HotelCard({
@@ -60,7 +66,8 @@ function HotelCard({
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-              <MapPin className="h-3 w-3 shrink-0" />{hotel.location}
+              <MapPin className="h-3 w-3 shrink-0" />
+              {hotel.city}{hotel.state ? `, ${hotel.state}` : ""}, {hotel.country}
             </p>
           </div>
           {linked && (
@@ -225,16 +232,16 @@ export function AdminHotelsManager() {
   }
 
   const handleCreate = async () => {
-    const { name, location, contactPerson, email, phone, isActive } = form
-    if (!name || !location || !contactPerson || !email) {
+    const { name, address, city, state, stateCode, countryCode, country, postalCode, contactPerson, email, phone, isActive } = form
+    if (!name || !address || !city || !countryCode || !postalCode || !contactPerson || !email) {
       sileo.error({ title: "Error", description: "Completa todos los campos obligatorios." })
       return
     }
     setCreating(true)
     try {
       await trpc.hotels.create.mutate({
-        name, location, contactPerson, email, phone,
-        isActive, avatar: form.avatar || undefined,
+        name, address, city, state, stateCode, countryCode, country, postalCode,
+        contactPerson, email, phone, isActive, avatar: form.avatar || undefined,
       })
       sileo.success({ title: "Hotel creado", description: `${name} fue creado y conectado a tu organización.` })
       setCreateOpen(false)
@@ -282,8 +289,18 @@ export function AdminHotelsManager() {
                 <Input id="c-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
               </div>
               <div className="col-span-2">
-                <Label htmlFor="c-loc">Ubicación *</Label>
-                <Input id="c-loc" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+                <LocationSelect
+                  value={{ countryCode: form.countryCode, country: form.country, stateCode: form.stateCode, state: form.state, city: form.city }}
+                  onChange={(loc: LocationValue) => setForm({ ...form, ...loc })}
+                />
+              </div>
+              <div className="col-span-2">
+                <Label htmlFor="c-address">Dirección *</Label>
+                <Input id="c-address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Blvd. Kukulcan Km 16.5" />
+              </div>
+              <div>
+                <Label htmlFor="c-postal">Código postal *</Label>
+                <Input id="c-postal" value={form.postalCode} onChange={(e) => setForm({ ...form, postalCode: e.target.value })} />
               </div>
               <div>
                 <Label htmlFor="c-contact">Contacto *</Label>

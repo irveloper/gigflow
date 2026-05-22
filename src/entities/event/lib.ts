@@ -7,10 +7,10 @@ export const filterEventsForCalendar = (events: Event[], user: User | null) =>
 
 export const getEventStartDate = (event: Pick<Event, "date" | "time">) => new Date(`${event.date}T${event.time}:00`)
 
-export const getEventEndDate = (event: Pick<Event, "date" | "time" | "durationMinutes">) =>
-  addMinutes(getEventStartDate(event), event.durationMinutes)
+export const getEventEndDate = (event: Pick<Event, "date" | "time" | "sets">) =>
+  addMinutes(getEventStartDate(event), event.sets * 60)
 
-export const getEventTimeLabel = (event: Pick<Event, "date" | "time" | "durationMinutes">) => {
+export const getEventTimeLabel = (event: Pick<Event, "date" | "time" | "sets">) => {
   const start = getEventStartDate(event)
   const end = getEventEndDate(event)
 
@@ -69,8 +69,8 @@ export const toFullCalendarEvents = (events: Event[]): EventInput[] =>
   }))
 
 export const eventsOverlap = (
-  left: Pick<Event, "date" | "time" | "durationMinutes">,
-  right: Pick<Event, "date" | "time" | "durationMinutes">,
+  left: Pick<Event, "date" | "time" | "sets">,
+  right: Pick<Event, "date" | "time" | "sets">,
 ) => getEventStartDate(left) < getEventEndDate(right) && getEventEndDate(left) > getEventStartDate(right)
 
 export const getSchedulingConflicts = ({
@@ -134,5 +134,5 @@ export const getCalendarSummary = (events: Event[]) => ({
   totalEvents: events.length,
   completedEvents: events.filter((event) => event.checkedIn || event.status === "completed").length,
   hotelCount: new Set(events.map((event) => event.hotel)).size,
-  estimatedHours: events.reduce((total, event) => total + event.durationMinutes, 0) / 60,
+  totalSets: events.reduce((total, event) => total + event.sets, 0),
 })

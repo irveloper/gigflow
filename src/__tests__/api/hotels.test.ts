@@ -25,7 +25,6 @@ beforeAll(async () => {
       stripePriceId: "price_starter_monthly",
       status: "active",
       seatLimit: 10,
-      currentPeriodStart: new Date(),
       currentPeriodEnd: new Date(Date.now() + 30 * 86_400_000),
     },
   })
@@ -59,12 +58,20 @@ describe("hotels router", () => {
       name: "Integration Hotel",
       email: `hotel-int-${Date.now()}@test.com`,
       phone: "+52 998 000 0010",
-      location: "Cancún",
+      address: "Blvd. Kukulcan Km 1",
+      city: "Cancún",
+      state: "Quintana Roo",
+      stateCode: "ROO",
+      countryCode: "MX",
+      country: "Mexico",
+      postalCode: "77500",
       contactPerson: "Test Person",
       isActive: true,
     })
     expect(hotel.id).toBeTruthy()
     expect(hotel.name).toBe("Integration Hotel")
+    expect(hotel.city).toBe("Cancún")
+    expect(hotel.countryCode).toBe("MX")
   })
 
   it("update hotel", async () => {
@@ -73,7 +80,13 @@ describe("hotels router", () => {
       name: "Update Hotel",
       email: `hotel-upd-${Date.now()}@test.com`,
       phone: "+52 998 000 0011",
-      location: "Cancún",
+      address: "Blvd. Kukulcan Km 2",
+      city: "Cancún",
+      state: "Quintana Roo",
+      stateCode: "ROO",
+      countryCode: "MX",
+      country: "Mexico",
+      postalCode: "77500",
       contactPerson: "Contact",
       isActive: true,
     })
@@ -87,13 +100,40 @@ describe("hotels router", () => {
       name: "Delete Hotel",
       email: `hotel-del-${Date.now()}@test.com`,
       phone: "+52 998 000 0012",
-      location: "Cancún",
+      address: "Blvd. Kukulcan Km 3",
+      city: "Cancún",
+      state: "Quintana Roo",
+      stateCode: "ROO",
+      countryCode: "MX",
+      country: "Mexico",
+      postalCode: "77500",
       contactPerson: "Contact",
       isActive: true,
     })
     await caller.hotels.delete({ id: hotel.id })
     const after = await caller.hotels.getAll({})
     expect(after.items.find((h) => h.id === hotel.id)).toBeUndefined()
+  })
+
+  it("non-Mexico hotel stores correct country data", async () => {
+    const caller = await createTestCaller({ role: "manager", orgId: ORG_ID })
+    const hotel = await caller.hotels.create({
+      name: "Grand Hyatt New York",
+      email: `hotel-us-${Date.now()}@test.com`,
+      phone: "+1 212 883 1234",
+      address: "109 E 42nd St",
+      city: "New York",
+      state: "New York",
+      stateCode: "NY",
+      countryCode: "US",
+      country: "United States",
+      postalCode: "10017",
+      contactPerson: "James Wilson",
+      isActive: true,
+    })
+    expect(hotel.countryCode).toBe("US")
+    expect(hotel.city).toBe("New York")
+    expect(hotel.stateCode).toBe("NY")
   })
 
   it("rejects unauthenticated access", async () => {

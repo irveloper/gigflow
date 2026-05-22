@@ -20,7 +20,7 @@ model User {
   phone          String?
   instruments    String[]  @default([])
   styles         String[]  @default([])
-  hourlyRate     Float?
+  pricePerSet    Float?
   // hotel-specific
   location       String?
   contactPerson  String?
@@ -150,6 +150,7 @@ model Band {
   name        String
   description String?
   genre       String?
+  pricePerSet Float?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
 
@@ -191,7 +192,7 @@ model Musician {
   phone       String
   instruments String[] @default([])
   styles      String[] @default([])
-  hourlyRate  Float
+  pricePerSet Float
   isActive    Boolean  @default(true)
   avatar      String?
   createdAt   DateTime @default(now())
@@ -228,7 +229,13 @@ model Hotel {
   name          String
   email         String   @unique
   phone         String
-  location      String
+  address       String
+  city          String
+  state         String
+  stateCode     String
+  countryCode   String
+  country       String
+  postalCode    String
   contactPerson String
   isActive      Boolean  @default(true)
   avatar        String?
@@ -247,7 +254,7 @@ model Event {
   description     String?
   date            String    // YYYY-MM-DD — kept as string to match domain type exactly
   time            String    // HH:MM
-  durationMinutes Int
+  sets            Int       // number of sets (1 set = 1 hour)
   hotel           String    // denormalized display name
   hotelId         String?
   musician        String?   // denormalized display name (solo)
@@ -261,6 +268,8 @@ model Event {
   checkInLocation Json?     // { lat: Float, lng: Float }
   checkInComments String?
   price           Float?    // null = no price set
+  paymentStatus   String    @default("pending") // "pending" | "paid"
+  paymentNotes    String?   // free-text, e.g. "Paid via SPEI ref 12345"
   // org tenant — backfilled and non-nullable after migration 20260517000000
   organizationId  String
   createdAt       DateTime  @default(now())

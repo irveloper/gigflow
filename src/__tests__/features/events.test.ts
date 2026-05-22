@@ -161,14 +161,14 @@ describe("events model", () => {
         musicianId: "user-1", // carlos — member of jazzTrio
         bandId: undefined,
         time: "20:00",
-        durationMinutes: 60,
+        sets: 1,
       })
       const existing = makeEvent({
         id: "existing-band-event",
         musicianId: undefined,
         bandId: "band-1", // jazzTrio — has carlos
         time: "20:30",
-        durationMinutes: 60,
+        sets: 1,
       })
 
       const conflicts = getSchedulingConflicts({ candidate, events: [existing], bandMemberIds })
@@ -181,14 +181,14 @@ describe("events model", () => {
         musicianId: undefined,
         bandId: "band-1", // jazzTrio — has carlos
         time: "20:00",
-        durationMinutes: 60,
+        sets: 1,
       })
       const existing = makeEvent({
         id: "existing-solo",
         musicianId: "user-1", // carlos — member of jazzTrio
         bandId: undefined,
         time: "20:30",
-        durationMinutes: 60,
+        sets: 1,
       })
 
       const conflicts = getSchedulingConflicts({ candidate, events: [existing], bandMemberIds })
@@ -201,14 +201,14 @@ describe("events model", () => {
         musicianId: undefined,
         bandId: "band-2", // flamencoGroup — has carlos
         time: "20:00",
-        durationMinutes: 60,
+        sets: 1,
       })
       const existing = makeEvent({
         id: "existing-band-1",
         musicianId: undefined,
         bandId: "band-1", // jazzTrio — also has carlos
         time: "20:00",
-        durationMinutes: 60,
+        sets: 1,
       })
 
       const conflicts = getSchedulingConflicts({ candidate, events: [existing], bandMemberIds })
@@ -221,14 +221,14 @@ describe("events model", () => {
         musicianId: "user-1", // carlos
         bandId: undefined,
         time: "22:00",
-        durationMinutes: 60,
+        sets: 1,
       })
       const existing = makeEvent({
         id: "existing-band-early",
         musicianId: undefined,
         bandId: "band-1", // jazzTrio — has carlos, ends 21:00
         time: "20:00",
-        durationMinutes: 60,
+        sets: 1,
       })
 
       const conflicts = getSchedulingConflicts({ candidate, events: [existing], bandMemberIds })
@@ -240,15 +240,16 @@ describe("events model", () => {
         title: "Jazz Night Pool",
         date: BASE_DATE,
         time: "20:00",
-        durationMinutes: 90,
+        sets: 2,
         hotel: "Hotel Sunset",
         status: "scheduled" as const,
         bandId: bandFixtures.jazzTrio.id,
         band: bandFixtures.jazzTrio.name,
+        paymentStatus: "pending" as const,
       }
       const scope = fork({
         handlers: [
-          [createEventFx, () => ({ ...input, id: "mock-band-event-id", checkedIn: false as const })],
+          [createEventFx, () => ({ ...input, id: "mock-band-event-id", checkedIn: false as const, paymentStatus: "pending" as const })],
         ],
       })
       const before = scope.getState($events).length
@@ -270,13 +271,14 @@ describe("events model", () => {
         title: "New Show",
         date: "2026-05-01",
         time: "20:00",
-        durationMinutes: 60,
+        sets: 1,
         hotel: "Hotel Test",
         status: "scheduled" as const,
+        paymentStatus: "pending" as const,
       }
       const scope = fork({
         handlers: [
-          [createEventFx, () => ({ ...input, id: "mock-id", checkedIn: false as const })],
+          [createEventFx, () => ({ ...input, id: "mock-id", checkedIn: false as const, paymentStatus: "pending" as const })],
         ],
       })
       const before = scope.getState($events).length

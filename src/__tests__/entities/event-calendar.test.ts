@@ -66,7 +66,7 @@ describe("event calendar adapter", () => {
         totalEvents: 4,
         completedEvents: 0,
         hotelCount: 3,
-        estimatedHours: 7,
+        totalSets: 8,
       })
     })
   })

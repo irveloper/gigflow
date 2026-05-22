@@ -77,7 +77,7 @@ function buildCsp(nonce: string): string {
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""} https://js.stripe.com https://browser.sentry-cdn.com`,
     isDev ? "style-src 'self' 'unsafe-inline'" : `style-src 'self' 'nonce-${nonce}'`,
     "img-src 'self' data: blob: https://*.amazonaws.com",
-    "font-src 'self'",
+    "font-src 'self' data:",
     `connect-src 'self' https://*.ingest.sentry.io https://api.stripe.com${isDev ? " ws: wss:" : ""}`,
     `frame-src 'self' https://js.stripe.com${isDev ? " http://localhost:*" : ""}`,
     "frame-ancestors 'none'",

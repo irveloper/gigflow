@@ -53,7 +53,7 @@ const TONE_TO_VARIANT: Record<string, "default" | "secondary" | "destructive" | 
 
 const EMPTY_FORM = {
   title: "", description: "", date: "", time: "",
-  durationMinutes: "120",
+  sets: "2",
   hotelId: "", musicianId: "", bandId: "", performerType: "solo" as "solo" | "band", concept: "",
 }
 
@@ -65,7 +65,7 @@ function eventToForm(event: Event): FormState {
     description: event.description ?? "",
     date: event.date,
     time: event.time,
-    durationMinutes: String(event.durationMinutes),
+    sets: String(event.sets),
     hotelId: event.hotelId ?? "",
     musicianId: event.musicianId ?? "",
     bandId: event.bandId ?? "",
@@ -100,9 +100,9 @@ export function AdminEventsManager() {
   }, [])
 
   const handleCreate = () => {
-    const { title, date, time, hotelId, musicianId, bandId, performerType, durationMinutes } = formData
+    const { title, date, time, hotelId, musicianId, bandId, performerType, sets } = formData
     const hasPerformer = performerType === "solo" ? !!musicianId : !!bandId
-    if (!title || !date || !time || !hotelId || !hasPerformer || !durationMinutes) {
+    if (!title || !date || !time || !hotelId || !hasPerformer || !sets) {
       sileo.error({ title: "Error", description: "Completa todos los campos obligatorios" })
       return
     }
@@ -117,11 +117,12 @@ export function AdminEventsManager() {
       description: formData.description || undefined,
       date,
       time,
-      durationMinutes: Number(durationMinutes),
+      sets: Number(sets),
       hotel: hotel?.name ?? "",
       hotelId,
       ...(performerType === "solo" ? { musician: musician?.name, musicianId } : { band: band?.name, bandId }),
       status: "scheduled",
+      paymentStatus: "pending" as const,
     }
 
     const conflicts = getSchedulingConflicts({
@@ -143,9 +144,9 @@ export function AdminEventsManager() {
 
   const handleSaveEdit = () => {
     if (!eventToEdit) return
-    const { title, date, time, hotelId, musicianId, bandId, performerType, durationMinutes } = formData
+    const { title, date, time, hotelId, musicianId, bandId, performerType, sets } = formData
     const hasPerformer = performerType === "solo" ? !!musicianId : !!bandId
-    if (!title || !date || !time || !hotelId || !hasPerformer || !durationMinutes) {
+    if (!title || !date || !time || !hotelId || !hasPerformer || !sets) {
       sileo.error({ title: "Error", description: "Completa todos los campos obligatorios" })
       return
     }
@@ -161,7 +162,7 @@ export function AdminEventsManager() {
       description: formData.description || undefined,
       date,
       time,
-      durationMinutes: Number(durationMinutes),
+      sets: Number(sets),
       hotel: hotel?.name ?? eventToEdit.hotel,
       hotelId,
       ...(performerType === "solo"
@@ -205,7 +206,14 @@ export function AdminEventsManager() {
   const activeHotels = new Set(events.map((e) => e.hotel)).size
   const isLocked = (event: Event) => event.status === "in-progress" || event.status === "completed"
 
-  const EventForm = ({ disabled }: { disabled?: boolean }) => (
+  const selectedMusician = formData.performerType === "solo" ? musicians.find((m) => m.id === formData.musicianId) : undefined
+  const selectedBand = formData.performerType === "band" ? bands.find((b) => b.id === formData.bandId) : undefined
+  const performerRate = selectedMusician?.pricePerSet ?? selectedBand?.pricePerSet ?? null
+  const hasPerformer = formData.performerType === "solo" ? !!formData.musicianId : !!formData.bandId
+  const missingRate = hasPerformer && performerRate === null
+  const estimatedCost = performerRate !== null && formData.sets ? performerRate * Number(formData.sets) : null
+
+  const EventForm = ({ disabled, editingEvent }: { disabled?: boolean; editingEvent?: Event | null }) => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <Label htmlFor="title">Título *</Label>
@@ -227,14 +235,13 @@ export function AdminEventsManager() {
         <Input id="time" type="time" value={formData.time} onChange={(e) => setFormData({ ...formData, time: e.target.value })} disabled={disabled} />
       </div>
       <div>
-        <Label htmlFor="duration">Duración *</Label>
-        <Select value={formData.durationMinutes} onValueChange={(v) => setFormData({ ...formData, durationMinutes: v })}>
-          <SelectTrigger id="duration"><SelectValue placeholder="Seleccionar duración" /></SelectTrigger>
+        <Label htmlFor="sets">Sets * <span className="text-gray-400 font-normal text-xs">(1 set = 1 hora)</span></Label>
+        <Select value={formData.sets} onValueChange={(v) => setFormData({ ...formData, sets: v })}>
+          <SelectTrigger id="sets"><SelectValue placeholder="Seleccionar sets" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="60">60 min</SelectItem>
-            <SelectItem value="90">90 min</SelectItem>
-            <SelectItem value="120">120 min</SelectItem>
-            <SelectItem value="180">180 min</SelectItem>
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+              <SelectItem key={n} value={String(n)}>{n} {n === 1 ? "set" : "sets"} ({n}h)</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -270,17 +277,33 @@ export function AdminEventsManager() {
         {formData.performerType === "solo" ? (
           <Select value={formData.musicianId} onValueChange={(v) => setFormData({ ...formData, musicianId: v })} disabled={disabled}>
             <SelectTrigger><SelectValue placeholder="Seleccionar músico" /></SelectTrigger>
-            <SelectContent>{musicians.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
+            <SelectContent>{musicians.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}{m.pricePerSet ? ` — $${m.pricePerSet.toLocaleString()}/set` : " — sin tarifa"}</SelectItem>)}</SelectContent>
           </Select>
         ) : (
           <Select value={formData.bandId} onValueChange={(v) => setFormData({ ...formData, bandId: v })} disabled={disabled}>
             <SelectTrigger><SelectValue placeholder="Seleccionar banda" /></SelectTrigger>
             <SelectContent>
               {bands.filter((b) => b.isActive).map((b) => (
-                <SelectItem key={b.id} value={b.id}>{b.name}{b.genre ? ` — ${b.genre}` : ""}</SelectItem>
+                <SelectItem key={b.id} value={b.id}>{b.name}{b.genre ? ` — ${b.genre}` : ""}{b.pricePerSet ? ` — $${b.pricePerSet.toLocaleString()}/set` : " — sin tarifa"}</SelectItem>
               ))}
             </SelectContent>
           </Select>
+        )}
+        {missingRate && (
+          <p className="text-sm text-amber-600 flex items-center gap-1">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            Este artista no tiene tarifa por set. Configura la tarifa antes de guardar.
+          </p>
+        )}
+        {estimatedCost !== null && (
+          <p className="text-sm text-green-700 font-medium">
+            Costo estimado: ${estimatedCost.toLocaleString("es-MX")}
+          </p>
+        )}
+        {editingEvent?.price != null && (
+          <p className="text-sm text-gray-500">
+            Precio registrado: <span className="font-medium text-gray-700">${editingEvent.price.toLocaleString("es-MX")}</span>
+          </p>
         )}
       </div>
       <div className="md:col-span-2">
@@ -311,7 +334,7 @@ export function AdminEventsManager() {
               <EventForm />
               {formConflict && <p className="text-sm text-red-600">{formConflict}</p>}
               <div className="flex gap-2 pt-4">
-                <Button onClick={handleCreate} className="flex-1">Crear Evento</Button>
+                <Button onClick={handleCreate} className="flex-1" disabled={missingRate}>Crear Evento</Button>
                 <Button variant="outline" onClick={() => { setIsCreateOpen(false); setFormConflict(null) }}>Cancelar</Button>
               </div>
             </DialogContent>
@@ -555,10 +578,10 @@ export function AdminEventsManager() {
               <DialogTitle>Editar Evento</DialogTitle>
               <DialogDescription>Modifica los datos del evento</DialogDescription>
             </DialogHeader>
-            {eventToEdit && <EventForm disabled={isLocked(eventToEdit)} />}
+            {eventToEdit && <EventForm disabled={isLocked(eventToEdit)} editingEvent={eventToEdit} />}
             {editConflict && <p className="text-sm text-red-600">{editConflict}</p>}
             <div className="flex gap-2 pt-4">
-              <Button onClick={handleSaveEdit} className="flex-1">Guardar Cambios</Button>
+              <Button onClick={handleSaveEdit} className="flex-1" disabled={missingRate}>Guardar Cambios</Button>
               <Button variant="outline" onClick={() => { setEventToEdit(null); setEditConflict(null) }}>Cancelar</Button>
             </div>
           </DialogContent>

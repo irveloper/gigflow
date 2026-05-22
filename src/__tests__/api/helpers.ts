@@ -42,7 +42,7 @@ function buildSession(opts: TestContextOptions): Session {
       phone: undefined,
       instruments: [],
       styles: [],
-      hourlyRate: undefined,
+      pricePerSet: undefined,
       location: undefined,
       contactPerson: undefined,
       hotelId: undefined,
@@ -76,7 +76,6 @@ export async function createTestCaller(opts: TestContextOptions) {
         stripePriceId: "price_starter_monthly",
         status: opts.subscriptionStatus,
         seatLimit: 3,
-        currentPeriodStart: new Date(),
         currentPeriodEnd: new Date(Date.now() + 30 * 86_400_000),
       },
     })

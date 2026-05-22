@@ -16,6 +16,7 @@ import { $user } from "@/entities/user/model"
 import { trpc } from "@/shared/lib/trpc"
 import { sileo } from "sileo"
 import type { Hotel } from "@/shared/types"
+import { LocationSelect, type LocationValue } from "@/shared/ui/location-select"
 
 export default function HotelDetailPage() {
   const { slug, hotelId } = useParams<{ slug: string; hotelId: string }>()
@@ -26,7 +27,10 @@ export default function HotelDetailPage() {
   const [orgContact, setOrgContact] = useState<{ contactPerson: string | null; contactPhone: string | null } | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const [globalForm, setGlobalForm] = useState({ name: "", location: "", email: "", phone: "", contactPerson: "", isActive: true })
+  const [globalForm, setGlobalForm] = useState({
+    name: "", email: "", phone: "", contactPerson: "", isActive: true,
+    address: "", city: "", state: "", stateCode: "", countryCode: "", country: "", postalCode: "",
+  })
   const [orgContactForm, setOrgContactForm] = useState({ contactPerson: "", contactPhone: "" })
   const [savingGlobal, setSavingGlobal] = useState(false)
   const [savingContact, setSavingContact] = useState(false)
@@ -42,11 +46,17 @@ export default function HotelDetailPage() {
         setOrgContact(oc)
         setGlobalForm({
           name: h.name,
-          location: h.location,
           email: h.email,
           phone: h.phone,
           contactPerson: h.contactPerson,
           isActive: h.isActive,
+          address: h.address,
+          city: h.city,
+          state: h.state,
+          stateCode: h.stateCode,
+          countryCode: h.countryCode,
+          country: h.country,
+          postalCode: h.postalCode,
         })
         setOrgContactForm({
           contactPerson: oc?.contactPerson ?? "",
@@ -68,11 +78,17 @@ export default function HotelDetailPage() {
       const updated = await trpc.hotels.update.mutate({
         id: hotel.id,
         name: globalForm.name,
-        location: globalForm.location,
         email: globalForm.email,
         phone: globalForm.phone,
         contactPerson: globalForm.contactPerson,
         isActive: globalForm.isActive,
+        address: globalForm.address,
+        city: globalForm.city,
+        state: globalForm.state,
+        stateCode: globalForm.stateCode,
+        countryCode: globalForm.countryCode,
+        country: globalForm.country,
+        postalCode: globalForm.postalCode,
         createdAt: hotel.createdAt,
       })
       setHotel(updated)
@@ -142,7 +158,9 @@ export default function HotelDetailPage() {
             <Badge variant={hotel.isActive ? "default" : "secondary"}>
               {hotel.isActive ? "Activo" : "Inactivo"}
             </Badge>
-            <span className="text-sm text-muted-foreground">{hotel.location}</span>
+            <span className="text-sm text-muted-foreground">
+              {hotel.city}{hotel.state ? `, ${hotel.state}` : ""}, {hotel.country}
+            </span>
           </div>
         </div>
       </div>
@@ -165,8 +183,18 @@ export default function HotelDetailPage() {
               <Input id="g-name" value={globalForm.name} onChange={(e) => setGlobalForm({ ...globalForm, name: e.target.value })} />
             </div>
             <div className="col-span-2">
-              <Label htmlFor="g-loc">Ubicación</Label>
-              <Input id="g-loc" value={globalForm.location} onChange={(e) => setGlobalForm({ ...globalForm, location: e.target.value })} />
+              <LocationSelect
+                value={{ countryCode: globalForm.countryCode, country: globalForm.country, stateCode: globalForm.stateCode, state: globalForm.state, city: globalForm.city }}
+                onChange={(loc: LocationValue) => setGlobalForm({ ...globalForm, ...loc })}
+              />
+            </div>
+            <div className="col-span-2">
+              <Label htmlFor="g-address">Dirección</Label>
+              <Input id="g-address" value={globalForm.address} onChange={(e) => setGlobalForm({ ...globalForm, address: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor="g-postal">Código postal</Label>
+              <Input id="g-postal" value={globalForm.postalCode} onChange={(e) => setGlobalForm({ ...globalForm, postalCode: e.target.value })} />
             </div>
             <div>
               <Label htmlFor="g-email">Email</Label>

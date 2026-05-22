@@ -9,6 +9,7 @@ type PrismaBand = {
   name: string
   description: string | null
   genre: string | null
+  pricePerSet: number | null
   isActive: boolean
   createdAt: Date
   members?: { musicianId: string }[]
@@ -20,6 +21,7 @@ function mapBand(b: PrismaBand): Band {
     name: b.name,
     description: b.description ?? undefined,
     genre: b.genre ?? undefined,
+    pricePerSet: b.pricePerSet ?? undefined,
     isActive: b.isActive,
     createdAt: b.createdAt.toISOString(),
     members: b.members?.map((m) => m.musicianId),
@@ -105,6 +107,7 @@ export const bandsRouter = router({
           name: input.name,
           description: input.description ?? null,
           genre: input.genre ?? null,
+          pricePerSet: input.pricePerSet ?? null,
           isActive: input.isActive ?? true,
           members: {
             create: input.memberIds.map((musicianId) => ({ musicianId })),
@@ -129,6 +132,7 @@ export const bandsRouter = router({
         name: z.string().min(1).optional(),
         description: z.string().optional(),
         genre: z.string().optional(),
+        pricePerSet: z.number().positive().nullable().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -147,6 +151,7 @@ export const bandsRouter = router({
           ...(input.name !== undefined && { name: input.name }),
           ...(input.description !== undefined && { description: input.description }),
           ...(input.genre !== undefined && { genre: input.genre }),
+          ...(input.pricePerSet !== undefined && { pricePerSet: input.pricePerSet }),
         },
         include: { members: { select: { musicianId: true } } },
       })

@@ -5,6 +5,7 @@ export const BandSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   genre: z.string().optional(),
+  pricePerSet: z.number().positive().optional(),
   isActive: z.boolean().default(true),
   createdAt: z.string().datetime({ offset: true }),
   members: z.array(z.string()).optional(), // musician IDs

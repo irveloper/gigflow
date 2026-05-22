@@ -82,7 +82,7 @@ describe("check-in model", () => {
       expect(updated?.hotel).toBe(eventFixtures.todayAcoustic.hotel)
       expect(updated?.musician).toBe(eventFixtures.todayAcoustic.musician)
       expect(updated?.date).toBe(eventFixtures.todayAcoustic.date)
-      expect(updated?.durationMinutes).toBe(eventFixtures.todayAcoustic.durationMinutes)
+      expect(updated?.sets).toBe(eventFixtures.todayAcoustic.sets)
     })
 
     it("check-in adds success notification", async () => {

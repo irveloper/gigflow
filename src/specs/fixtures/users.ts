@@ -12,7 +12,7 @@ export const userFixtures = {
     phone: "+52 998 123 4567",
     instruments: ["Acoustic Set", "Jazz Trio", "Solo Piano"],
     styles: ["jazz", "acoustic"],
-    hourlyRate: 800,
+    pricePerSet: 800,
     musicianId: "user-1",
     createdAt: NOW,
   },

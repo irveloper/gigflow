@@ -1,4 +1,5 @@
 import { defineConfig } from "vitest/config"
+import react from "@vitejs/plugin-react"
 import tsconfigPaths from "vite-tsconfig-paths"
 
 /**
@@ -9,15 +10,15 @@ import tsconfigPaths from "vite-tsconfig-paths"
  *   pnpm test:integration
  */
 export default defineConfig({
-  plugins: [tsconfigPaths()],
+  plugins: [react(), tsconfigPaths()],
   test: {
     name: "integration",
-    environment: "node",
+    environment: "jsdom",
     globals: true,
     testTimeout: 30_000,
     hookTimeout: 30_000,
     env: {
-      DATABASE_URL: process.env.DATABASE_URL ?? "postgresql://localhost:5432/test",
+      DATABASE_URL: process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/plugin_cancun",
       NEXTAUTH_SECRET: "test-secret-for-integration",
       NEXTAUTH_URL: "http://localhost:3000",
       AWS_REGION: "us-east-1",
@@ -35,8 +36,13 @@ export default defineConfig({
       RESEND_API_KEY: "re_test_placeholder",
       RESEND_FROM_EMAIL: "test@example.com",
     },
-    include: ["__tests__/api/**/*.test.ts"],
+    include: ["src/__tests__/api/**/*.test.ts", "src/__tests__/features/payments.test.ts"],
     exclude: ["node_modules", ".next"],
+    server: {
+      deps: {
+        inline: ["next-auth"],
+      },
+    },
     // Run serially to avoid DB conflicts between test files
     pool: "forks",
     poolOptions: {

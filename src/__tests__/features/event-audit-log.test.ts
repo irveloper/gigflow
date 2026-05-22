@@ -25,7 +25,7 @@ describe("diffEventFields", () => {
     description: null,
     date: "2026-05-22",
     time: "19:00",
-    durationMinutes: 120,
+    sets: 120,
     hotel: "Hotel Grand",
     hotelId: "hotel-1",
     musician: "Carlos",

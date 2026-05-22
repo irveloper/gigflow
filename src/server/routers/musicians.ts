@@ -16,7 +16,7 @@ type PrismaMusician = {
   phone: string
   instruments: string[]
   styles: string[]
-  hourlyRate: number
+  pricePerSet: number
   isActive: boolean
   avatar: string | null
   createdAt: Date
@@ -30,7 +30,7 @@ function mapMusician(m: PrismaMusician): Musician {
     phone: m.phone,
     instruments: m.instruments,
     styles: m.styles,
-    hourlyRate: m.hourlyRate,
+    pricePerSet: m.pricePerSet,
     isActive: m.isActive,
     avatar: m.avatar ?? undefined,
     createdAt: m.createdAt.toISOString(),
@@ -126,7 +126,7 @@ export const musiciansRouter = router({
           phone: input.phone,
           instruments: input.instruments,
           styles: input.styles,
-          hourlyRate: input.hourlyRate,
+          pricePerSet: input.pricePerSet,
           isActive: input.isActive ?? true,
           avatar: input.avatar ?? null,
         },
@@ -169,7 +169,7 @@ export const musiciansRouter = router({
           phone: input.phone,
           instruments: input.instruments,
           styles: input.styles,
-          hourlyRate: input.hourlyRate,
+          pricePerSet: input.pricePerSet,
           isActive: input.isActive,
           avatar: input.avatar ?? null,
         },
@@ -247,7 +247,7 @@ export const musiciansRouter = router({
   /**
    * Returns current-month stats for the authenticated musician.
    * - performances: non-cancelled events this month
-   * - hoursWorked: sum of durationMinutes / 60 (rounded)
+   * - hoursWorked: sum of sets / 60 (rounded)
    * - hotels: distinct hotel count
    * - punctuality: % of non-cancelled events where checkedIn = true
    */
@@ -277,11 +277,11 @@ export const musiciansRouter = router({
           ...(bandIds.length > 0 ? [{ bandId: { in: bandIds } }] : []),
         ],
       },
-      select: { durationMinutes: true, hotel: true, checkedIn: true },
+      select: { sets: true, hotel: true, checkedIn: true },
     })
 
     const performances = events.length
-    const hoursWorked = Math.round(events.reduce((sum, e) => sum + e.durationMinutes, 0) / 60)
+    const hoursWorked = Math.round(events.reduce((sum, e) => sum + e.sets, 0) / 60)
     const hotels = new Set(events.map((e) => e.hotel)).size
     const punctuality = performances === 0
       ? 100

@@ -178,8 +178,8 @@ export function CalendarExperience() {
                 <p className="mt-2 text-2xl font-semibold">{activeSummary.hotelCount}</p>
               </div>
               <div className="rounded-2xl border border-border/70 bg-background px-4 py-3">
-                <p className="text-xs font-semibold tracking-[0.16em] uppercase text-muted-foreground">Horas est.</p>
-                <p className="mt-2 text-2xl font-semibold">{activeSummary.estimatedHours}h</p>
+                <p className="text-xs font-semibold tracking-[0.16em] uppercase text-muted-foreground">Sets realizados</p>
+                <p className="mt-2 text-2xl font-semibold">{activeSummary.totalSets}</p>
               </div>
             </div>
           </div>

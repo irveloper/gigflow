@@ -45,7 +45,7 @@ export const calendarScenarios = {
       then: [
         "calendar event id matches the domain event id",
         "calendar event start is derived from Event.date + Event.time",
-        "calendar event end is derived from durationMinutes",
+        "calendar event end is derived from sets",
         "calendar event keeps the original event in extendedProps for click handling",
         "calendar event receives a status-based class name for styling",
       ],

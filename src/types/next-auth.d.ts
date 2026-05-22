@@ -10,7 +10,7 @@ declare module "next-auth" {
       phone?: string
       instruments: string[]
       styles: string[]
-      hourlyRate?: number
+      pricePerSet?: number
       location?: string
       contactPerson?: string
       hotelId?: string
@@ -31,7 +31,7 @@ declare module "next-auth/jwt" {
     phone?: string
     instruments?: string[]
     styles?: string[]
-    hourlyRate?: number
+    pricePerSet?: number
     location?: string
     contactPerson?: string
     hotelId?: string

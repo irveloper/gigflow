@@ -59,7 +59,7 @@ export const authScenarios = {
         name: "Nueva Musica",
         role: "musician",
         instruments: ["Jazz"],
-        hourlyRate: 700,
+        pricePerSet: 700,
       },
       when: "registerSubmitted is triggered",
       then: ["registerFx succeeds", "$user is set", "auth cookie is set", "localStorage contains user JSON"],

@@ -58,6 +58,15 @@ export function TodayEventsCard() {
                   {user?.role === "musician" && event.organizationName && (
                     <Badge variant="outline" className="text-xs">{event.organizationName}</Badge>
                   )}
+                  {event.paymentStatus === "paid" ? (
+                    <Badge variant="outline" className="text-green-700 border-green-300 bg-green-50 text-xs">
+                      Pagado
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 text-xs">
+                      Pendiente
+                    </Badge>
+                  )}
                   <Badge variant={event.status === "scheduled" ? "default" : "secondary"}>
                     {event.status === "scheduled" ? "Programado" : "En Progreso"}
                   </Badge>
@@ -119,6 +128,15 @@ export function UpcomingEventsCard() {
                 <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                   {user?.role === "musician" && event.organizationName && (
                     <Badge variant="outline" className="text-xs">{event.organizationName}</Badge>
+                  )}
+                  {event.paymentStatus === "paid" ? (
+                    <Badge variant="outline" className="text-green-700 border-green-300 bg-green-50 text-xs">
+                      Pagado
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 text-xs">
+                      Pendiente
+                    </Badge>
                   )}
                   <Badge variant="outline">
                     {event.status === "scheduled" ? "Programado" : event.status}

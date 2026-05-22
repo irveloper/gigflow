@@ -25,6 +25,7 @@ export default defineConfig({
       "specs/features/**/*.scenarios.ts",
       // integration tests require a real database — run via pnpm test:integration
       "**/__tests__/api/**",
+      "src/__tests__/features/payments.test.ts",
     ],
     coverage: {
       provider: "v8",

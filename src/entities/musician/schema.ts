@@ -7,7 +7,7 @@ export const MusicianSchema = z.object({
   phone: z.string().min(1),
   instruments: z.array(z.string()).min(1),
   styles: z.array(z.string()).min(1),
-  hourlyRate: z.number().positive(),
+  pricePerSet: z.number().positive(),
   isActive: z.boolean().default(true),
   avatar: z.string().optional(),
   createdAt: z.string().datetime({ offset: true }),
