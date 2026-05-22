@@ -595,7 +595,7 @@ export const eventsRouter = router({
     .input(
       z.object({
         eventId: z.string(),
-        photoUrl: z.string().url().optional(),
+        photoUrl: z.string().optional(),
         timestamp: z.string().datetime({ offset: true }),
         location: z.object({ lat: z.number(), lng: z.number() }).optional(),
         comments: z.string().optional(),
