@@ -119,6 +119,31 @@ export const musiciansRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "No organization context" })
       }
 
+      // Check if musician already exists by email
+      const existing = await ctx.prisma.musician.findUnique({
+        where: { email: input.email },
+      })
+      if (existing) {
+        const link = await ctx.prisma.musicianOrganization.findUnique({
+          where: {
+            musicianId_organizationId: {
+              musicianId: existing.id,
+              organizationId: ctx.organizationId,
+            },
+          },
+        })
+        if (link) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Este correo electrónico ya está registrado y conectado a tu organización.",
+          })
+        }
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Este correo electrónico ya está registrado en el sistema. Puedes buscar al músico por su nombre para conectarlo.",
+        })
+      }
+
       const row = await ctx.prisma.musician.create({
         data: {
           name: input.name,
@@ -160,6 +185,20 @@ export const musiciansRouter = router({
         },
       })
       if (!link) throw new TRPCError({ code: "FORBIDDEN" })
+
+      // Check if email is already taken by another musician
+      const existing = await ctx.prisma.musician.findFirst({
+        where: {
+          email: input.email,
+          id: { not: input.id },
+        },
+      })
+      if (existing) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Este correo electrónico ya está registrado para otro músico.",
+        })
+      }
 
       const row = await ctx.prisma.musician.update({
         where: { id: input.id },

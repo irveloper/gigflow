@@ -252,6 +252,7 @@ model Event {
   id              String    @id @default(cuid())
   title           String
   description     String?
+  concept         String?
   date            String    // YYYY-MM-DD — kept as string to match domain type exactly
   time            String    // HH:MM
   sets            Int       // number of sets (1 set = 1 hour)

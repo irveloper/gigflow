@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { Music, Building2, Mail, Loader2, CheckCircle2 } from "lucide-react"
@@ -20,7 +20,7 @@ export default function PendingPage() {
   // Once useSession() resolves, the session state becomes the source of truth.
   const verifyHint = searchParams.get("verify") === "1"
 
-  const { data: session, status } = useSession()
+  const { data: session, status, update } = useSession()
 
   const [resendLoading, setResendLoading] = useState(false)
   const [resendSent, setResendSent] = useState(false)
@@ -44,6 +44,52 @@ export default function PendingPage() {
     }
   }
 
+  // Determine which step we're on based on session state (source of truth).
+  // Fall back to URL hint on initial render before session resolves.
+  const emailVerified = status === "authenticated"
+    ? !!session?.user.emailVerified
+    : !verifyHint
+
+  // Redirect to dashboard if user has verified email and already has an org.
+  useEffect(() => {
+    if (status === "authenticated" && emailVerified && session?.user.organizationSlug) {
+      router.replace(`/org/${session.user.organizationSlug}`)
+    }
+  }, [status, emailVerified, session?.user.organizationSlug, router])
+
+  // Sync session cookie with DB if organization exists but cookie is stale.
+  useEffect(() => {
+    if (status !== "authenticated" || !emailVerified) return
+
+    let isMounted = true
+
+    const checkDbOrg = async () => {
+      try {
+        const dbUser = await trpc.auth.me.query()
+        if (dbUser.organizationId && dbUser.organizationSlug && isMounted) {
+          await update({
+            user: {
+              organizationId: dbUser.organizationId,
+              organizationSlug: dbUser.organizationSlug,
+              role: dbUser.role,
+            },
+          })
+          router.replace(`/org/${dbUser.organizationSlug}`)
+        }
+      } catch (err) {
+        console.error("Error checking user org status:", err)
+      }
+    }
+
+    if (!session?.user.organizationId) {
+      checkDbOrg()
+    }
+
+    return () => {
+      isMounted = false
+    }
+  }, [status, emailVerified, session?.user.organizationId, update, router])
+
   // Loading state — session not yet resolved.
   if (status === "loading") {
     return (
@@ -53,17 +99,15 @@ export default function PendingPage() {
     )
   }
 
-  // Session resolved — redirect to dashboard if user already has an org.
-  if (session?.user.organizationSlug) {
-    router.replace(`/org/${session.user.organizationSlug}`)
-    return null
+  // Redirecting state — session resolved, email verified, and has organizationSlug.
+  // We return a loader here to prevent UI flash before the redirect triggers.
+  if (status === "authenticated" && emailVerified && session?.user.organizationSlug) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    )
   }
-
-  // Determine which step we're on based on session state (source of truth).
-  // Fall back to URL hint on initial render before session resolves.
-  const emailVerified = status === "authenticated"
-    ? !!session?.user.emailVerified
-    : !verifyHint
 
   const role = session?.user.role
   const isOrgOwner = role === "manager"

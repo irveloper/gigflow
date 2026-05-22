@@ -218,6 +218,9 @@ export const authRouter = router({
   me: protectedProcedure.query(async ({ ctx }) => {
     const dbUser = await ctx.prisma.user.findUnique({
       where: { email: ctx.session.user.email! },
+      include: {
+        organization: { select: { slug: true } },
+      },
     })
     if (!dbUser) throw new TRPCError({ code: "NOT_FOUND" })
     if (!dbUser.role) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "role_pending" })
@@ -235,6 +238,8 @@ export const authRouter = router({
       location: dbUser.location ?? undefined,
       contactPerson: dbUser.contactPerson ?? undefined,
       isActive: dbUser.isActive,
+      organizationId: dbUser.organizationId ?? undefined,
+      organizationSlug: dbUser.organization?.slug ?? undefined,
       createdAt: dbUser.createdAt.toISOString(),
     }
 

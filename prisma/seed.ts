@@ -87,7 +87,7 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: "admin@platform.com" },
-    update: {},
+    update: { emailVerified: new Date() },
     create: {
       id: "seed-user-superadmin",
       email: "admin@platform.com",
@@ -95,6 +95,7 @@ async function main() {
       password: hashedPassword,
       role: "superadmin",
       isActive: true,
+      emailVerified: new Date(),
     },
   })
   console.log("  ✓ Super-admin seeded")
@@ -103,7 +104,7 @@ async function main() {
 
   const managerA = await prisma.user.upsert({
     where: { email: "gerente@test.com" },
-    update: { organizationId: orgA.id },
+    update: { organizationId: orgA.id, emailVerified: new Date() },
     create: {
       id: "seed-user-manager",
       email: "gerente@test.com",
@@ -112,13 +113,14 @@ async function main() {
       role: "manager",
       phone: "+52 998 765 4321",
       isActive: true,
+      emailVerified: new Date(),
       organizationId: orgA.id,
     },
   })
 
   await prisma.user.upsert({
     where: { email: "musico@test.com" },
-    update: { organizationId: orgA.id },
+    update: { organizationId: orgA.id, emailVerified: new Date() },
     create: {
       id: "seed-user-musician-1",
       email: "musico@test.com",
@@ -130,6 +132,7 @@ async function main() {
       styles: ["Jazz", "Acoustic"],
       pricePerSet: 800,
       isActive: true,
+      emailVerified: new Date(),
       organizationId: orgA.id,
     },
   })
@@ -138,7 +141,7 @@ async function main() {
 
   const managerB = await prisma.user.upsert({
     where: { email: "gerente2@test.com" },
-    update: { organizationId: orgB.id },
+    update: { organizationId: orgB.id, emailVerified: new Date() },
     create: {
       id: "seed-user-manager-b",
       email: "gerente2@test.com",
@@ -147,13 +150,14 @@ async function main() {
       role: "manager",
       phone: "+52 998 555 9900",
       isActive: true,
+      emailVerified: new Date(),
       organizationId: orgB.id,
     },
   })
 
   await prisma.user.upsert({
     where: { email: "ana@test.com" },
-    update: { organizationId: orgB.id },
+    update: { organizationId: orgB.id, emailVerified: new Date() },
     create: {
       id: "seed-user-musician-2",
       email: "ana@test.com",
@@ -165,13 +169,14 @@ async function main() {
       styles: ["Jazz", "Bossa Nova", "Bolero"],
       pricePerSet: 750,
       isActive: true,
+      emailVerified: new Date(),
       organizationId: orgB.id,
     },
   })
 
   await prisma.user.upsert({
     where: { email: "hotel@test.com" },
-    update: { organizationId: orgA.id },
+    update: { organizationId: orgA.id, emailVerified: new Date() },
     create: {
       id: "seed-user-hotel",
       email: "hotel@test.com",
@@ -182,6 +187,7 @@ async function main() {
       location: "Blvd. Kukulcan Km 16.5, Zona Hotelera, Cancún",
       contactPerson: "Roberto Martinez",
       isActive: true,
+      emailVerified: new Date(),
       organizationId: orgA.id,
     },
   })
@@ -479,6 +485,7 @@ async function main() {
     id: string
     title: string
     description: string
+    concept?: string
     date: string
     time: string
     sets: number
@@ -971,13 +978,28 @@ async function main() {
 
   let eventsCreated = 0
   for (const ev of events) {
+    let concept = "Acoustic Set"
+    const lowerTitle = ev.title.toLowerCase()
+    if (lowerTitle.includes("jazz trio")) concept = "Jazz Trio"
+    else if (lowerTitle.includes("piano") || lowerTitle.includes("teclado")) concept = "Solo Piano"
+    else if (lowerTitle.includes("jazz") || lowerTitle.includes("vocal")) concept = "Vocal Jazz"
+    else if (lowerTitle.includes("bossa")) concept = "Bossa Nova"
+    else if (lowerTitle.includes("guitar") || lowerTitle.includes("flamenco") || lowerTitle.includes("cuerdas")) concept = "Guitar Solo"
+    else if (lowerTitle.includes("sax") || lowerTitle.includes("saxofón")) concept = "Saxophone Solo"
+    else if (lowerTitle.includes("latin") || lowerTitle.includes("salsa") || lowerTitle.includes("bolero") || lowerTitle.includes("marimba")) concept = "Latin Jazz"
+
+    if (ev.concept) concept = ev.concept
+
     await prisma.event.upsert({
       where: { id: ev.id },
-      update: {},
+      update: {
+        concept,
+      },
       create: {
         id: ev.id,
         title: ev.title,
         description: ev.description,
+        concept,
         date: ev.date,
         time: ev.time,
         sets: ev.sets,

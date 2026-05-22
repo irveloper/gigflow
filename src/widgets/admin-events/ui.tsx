@@ -70,7 +70,7 @@ function eventToForm(event: Event): FormState {
     musicianId: event.musicianId ?? "",
     bandId: event.bandId ?? "",
     performerType: event.bandId ? "band" : "solo",
-    concept: "",
+    concept: event.concept ?? "",
   }
 }
 
@@ -115,6 +115,7 @@ export function AdminEventsManager() {
     const candidateEvent: CreateEventInput = {
       title,
       description: formData.description || undefined,
+      concept: formData.concept || undefined,
       date,
       time,
       sets: Number(sets),
@@ -160,6 +161,7 @@ export function AdminEventsManager() {
       ...eventToEdit,
       title,
       description: formData.description || undefined,
+      concept: formData.concept || undefined,
       date,
       time,
       sets: Number(sets),

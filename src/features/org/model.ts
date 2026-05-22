@@ -1,6 +1,7 @@
 import { createEvent, createEffect, createStore, sample } from "effector"
 import type { CreateOrganizationInput, UpdateOrganizationInput, Organization } from "@/shared/types"
 import { $organization, organizationSet, organizationCleared } from "@/entities/organization/model"
+import { $user } from "@/entities/user/model"
 import { checkAuthFx } from "@/features/auth/model"
 import * as orgsApi from "@/shared/api/organizations"
 
@@ -17,6 +18,10 @@ export const orgUpdated = createEvent<UpdateOrganizationInput>()
 // Effects
 // ---------------------------------------------------------------------------
 export const loadMyOrgFx = createEffect<void, Organization | null>(async () => {
+  const user = $user.getState()
+  if (!user?.organizationId) {
+    return null
+  }
   try {
     return await orgsApi.fetchMyOrg()
   } catch {
@@ -67,7 +72,7 @@ sample({ clock: updateOrgFx.doneData, target: organizationSet })
 // Pending users and superadmin will silently get null back.
 sample({
   clock: checkAuthFx.doneData,
-  filter: (user): user is NonNullable<typeof user> => user !== null,
+  filter: (user): user is NonNullable<typeof user> => user !== null && !!user.organizationId,
   target: loadMyOrgFx,
 })
 
