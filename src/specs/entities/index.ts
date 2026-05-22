@@ -62,6 +62,12 @@ export { SubscriptionSchema, SubscriptionStatusSchema } from "@/entities/subscri
 export type { Subscription, SubscriptionStatus } from "@/entities/subscription/schema"
 
 export {
+  EventAuditLogSchema,
+  EventAuditLogActionSchema,
+} from "@/entities/event-audit-log/schema"
+export type { EventAuditLog, EventAuditLogAction } from "@/entities/event-audit-log/schema"
+
+export {
   CursorPaginationInputSchema,
   OffsetPaginationInputSchema,
   CursorPaginatedResponseSchema,

@@ -26,7 +26,6 @@ export const authRouter = router({
   register: publicProcedure
     .input(RegisterInputSchema)
     .mutation(async ({ ctx, input }) => {
-      if (input.role === "manager") throw new TRPCError({ code: "FORBIDDEN", message: "Manager accounts must be created by an administrator." })
 
       const exists = await ctx.prisma.user.findUnique({ where: { email: input.email } })
       if (exists) throw new TRPCError({ code: "CONFLICT", message: "Email ya registrado" })

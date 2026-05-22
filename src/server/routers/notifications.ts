@@ -2,6 +2,7 @@ import { z } from "zod"
 import { TRPCError } from "@trpc/server"
 import { router, protectedProcedure } from "@/server/trpc"
 import { CreateNotificationInputSchema } from "@/entities/notification/schema"
+import { writeEventAuditEntry } from "@/server/lib/audit"
 import type { Notification } from "@/shared/types"
 
 function mapNotification(n: {
@@ -62,6 +63,25 @@ export const notificationsRouter = router({
           eventId: input.eventId ?? null,
         },
       })
+
+      if (input.eventId) {
+        const event = await ctx.prisma.event.findUnique({
+          where: { id: input.eventId },
+          select: { organizationId: true },
+        })
+        if (event) {
+          await writeEventAuditEntry(ctx.prisma, {
+            eventId: input.eventId,
+            organizationId: event.organizationId,
+            actorId: ctx.session.user.id,
+            actorName: ctx.session.user.name ?? ctx.session.user.email ?? "Unknown",
+            actorRole: "manager",
+            action: "INVITATION_SENT",
+            metadata: { userId: ctx.session.user.id, notificationId: row.id },
+          })
+        }
+      }
+
       return mapNotification(row)
     }),
 
@@ -70,7 +90,7 @@ export const notificationsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const existing = await ctx.prisma.notification.findUnique({
         where: { id: input.id },
-        select: { userId: true },
+        select: { userId: true, eventId: true },
       })
       if (!existing) throw new TRPCError({ code: "NOT_FOUND" })
       if (existing.userId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
@@ -78,13 +98,59 @@ export const notificationsRouter = router({
         where: { id: input.id },
         data: { read: true },
       })
+
+      if (existing.eventId) {
+        const event = await ctx.prisma.event.findUnique({
+          where: { id: existing.eventId },
+          select: { organizationId: true },
+        })
+        if (event) {
+          await writeEventAuditEntry(ctx.prisma, {
+            eventId: existing.eventId,
+            organizationId: event.organizationId,
+            actorId: ctx.session.user.id,
+            actorName: ctx.session.user.name ?? ctx.session.user.email ?? "Unknown",
+            actorRole: (ctx.session.user.role as "manager" | "musician") ?? "musician",
+            action: "INVITATION_READ",
+            metadata: { notificationId: input.id },
+          })
+        }
+      }
     }),
 
   markAllRead: protectedProcedure.mutation(async ({ ctx }) => {
+    const userId = ctx.session.user.id
+
+    // Fetch event-linked unread notifications before bulk update for audit purposes
+    const eventLinked = await ctx.prisma.notification.findMany({
+      where: { userId, read: false, eventId: { not: null } },
+      select: { id: true, eventId: true },
+    })
+
     await ctx.prisma.notification.updateMany({
-      where: { userId: ctx.session.user.id },
+      where: { userId },
       data: { read: true },
     })
+
+    // Write one INVITATION_READ entry per event-linked notification
+    for (const notif of eventLinked) {
+      if (!notif.eventId) continue
+      const event = await ctx.prisma.event.findUnique({
+        where: { id: notif.eventId },
+        select: { organizationId: true },
+      })
+      if (event) {
+        await writeEventAuditEntry(ctx.prisma, {
+          eventId: notif.eventId,
+          organizationId: event.organizationId,
+          actorId: userId,
+          actorName: ctx.session.user.name ?? ctx.session.user.email ?? "Unknown",
+          actorRole: (ctx.session.user.role as "manager" | "musician") ?? "musician",
+          action: "INVITATION_READ",
+          metadata: { notificationId: notif.id },
+        })
+      }
+    }
   }),
 
   delete: protectedProcedure

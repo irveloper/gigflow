@@ -64,6 +64,17 @@ export const authScenarios = {
       when: "registerSubmitted is triggered",
       then: ["registerFx succeeds", "$user is set", "auth cookie is set", "localStorage contains user JSON"],
     },
+
+    "new org owner registers with manager role": {
+      given: {
+        email: "newowner@test.com",
+        password: DEMO_PASSWORD,
+        name: "New Owner",
+        role: "manager",
+      },
+      when: "registerSubmitted is triggered",
+      then: ["registerFx succeeds", "$user is set with role manager", "auth cookie is set", "$authError is null"],
+    },
   },
 
   logout: {
@@ -153,6 +164,16 @@ export const authScenarios = {
         "JWT is updated in-place (emailVerified: true)",
         "user is redirected to /auth/pending (no verify=1 param)",
         "user is NOT shown the login form",
+      ],
+    },
+
+    "manager with verified email and no org is redirected to /auth/pending": {
+      given: { session: { role: "manager", emailVerified: true, organizationId: undefined } },
+      when: "user navigates to any protected route",
+      then: [
+        "middleware Guard A fires",
+        "user is redirected to /auth/pending",
+        "pending page shows Choose-a-plan mode (not check-inbox mode)",
       ],
     },
 

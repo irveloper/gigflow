@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
-import { Music, Building2, Mail, Loader2 } from "lucide-react"
+import { Music, Building2, Mail, Loader2, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ActivationStepper } from "@/components/activation-stepper"
@@ -65,8 +65,53 @@ export default function PendingPage() {
     ? !!session?.user.emailVerified
     : !verifyHint
 
-  // CREATE-ORG mode: email is verified, user needs to name their organization.
+  const role = session?.user.role
+  const isOrgOwner = role === "manager"
+
+  // EMAIL VERIFIED — role-aware branching
   if (emailVerified) {
+    // ORG OWNER: prompt to set up their org + plan
+    if (isOrgOwner) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+          <div className="w-full max-w-md space-y-4">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Music className="h-8 w-8 text-white" />
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900">Gigflow</h1>
+            </div>
+
+            <ActivationStepper currentStep={2} variant="manager" />
+
+            <Card>
+              <CardHeader className="text-center">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <Building2 className="h-6 w-6 text-blue-600" />
+                </div>
+                <CardTitle>Set up your organization</CardTitle>
+                <CardDescription>
+                  Choose a plan and create your organization to unlock your dashboard.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button asChild className="w-full">
+                  <Link href="/onboarding/plan">
+                    <Building2 className="mr-2 h-4 w-4" />
+                    Choose a plan
+                  </Link>
+                </Button>
+                <Button variant="outline" onClick={handleLogout} className="w-full">
+                  Sign out
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )
+    }
+
+    // MUSICIAN / HOTEL: account is active, waiting to be added to an org
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
         <div className="w-full max-w-md space-y-4">
@@ -77,25 +122,20 @@ export default function PendingPage() {
             <h1 className="text-3xl font-bold text-gray-900">Gigflow</h1>
           </div>
 
-          <ActivationStepper currentStep={2} />
+          <ActivationStepper currentStep={2} variant="member" />
 
           <Card>
             <CardHeader className="text-center">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                <Building2 className="h-6 w-6 text-blue-600" />
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                <CheckCircle2 className="h-6 w-6 text-green-600" />
               </div>
-              <CardTitle>Create your organization</CardTitle>
+              <CardTitle>Account active</CardTitle>
               <CardDescription>
-                Your email is verified. Name your organization to complete setup and enter your dashboard.
+                Your email is verified. An organization admin will add you to their platform.
+                You&apos;ll get access once you&apos;re connected to an organization.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button asChild className="w-full">
-                <Link href="/org/new">
-                  <Building2 className="mr-2 h-4 w-4" />
-                  Create my organization
-                </Link>
-              </Button>
               <Button variant="outline" onClick={handleLogout} className="w-full">
                 Sign out
               </Button>
@@ -117,7 +157,7 @@ export default function PendingPage() {
           <h1 className="text-3xl font-bold text-gray-900">Gigflow</h1>
         </div>
 
-        <ActivationStepper currentStep={1} />
+        <ActivationStepper currentStep={1} variant={isOrgOwner ? "manager" : "member"} />
 
         <Card>
           <CardHeader className="text-center">
