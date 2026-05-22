@@ -56,7 +56,7 @@ export default function PlanSelectorPage() {
       .replace(/^-|-$/g, "")
   }
 
-  async function handleContinue() {
+  async function handleContinue(skipPayment = false) {
     if (!orgName.trim() || !orgSlug.trim()) {
       setError("Organization name and URL are required.")
       return
@@ -64,17 +64,12 @@ export default function PlanSelectorPage() {
     setError(null)
     setLoading(true)
     try {
-      const priceEnvKey = `NEXT_PUBLIC_STRIPE_PRICE_${selectedPlan.toUpperCase()}_${billing.toUpperCase()}` as never
-      const priceId = (process.env as Record<string, string | undefined>)[priceEnvKey]
-      if (!priceId) {
-        setError("Selected plan is not configured. Contact support.")
-        setLoading(false)
-        return
-      }
       const result = await trpc.organizations.initiateCheckout.mutate({
         name: orgName.trim(),
         slug: orgSlug,
-        priceId,
+        planKey: selectedPlan,
+        billing,
+        skipPayment,
       })
       router.push(result.url)
     } catch (err: unknown) {
@@ -193,14 +188,27 @@ export default function PlanSelectorPage() {
 
         {error && <p className="text-sm text-destructive text-center mb-3">{error}</p>}
 
-        <Button
-          className="w-full"
-          size="lg"
-          onClick={handleContinue}
-          disabled={loading || !orgName.trim() || !orgSlug.trim()}
-        >
-          {loading ? "Redirecting to checkout…" : "Continue to payment →"}
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-4 mt-6">
+          <Button
+            className="flex-1 font-bold"
+            size="lg"
+            onClick={() => handleContinue(false)}
+            disabled={loading || !orgName.trim() || !orgSlug.trim()}
+          >
+            {loading ? "Processing…" : "Continue to payment →"}
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="flex-1 font-semibold border-dashed border-primary/40 hover:bg-accent/40"
+            size="lg"
+            onClick={() => handleContinue(true)}
+            disabled={loading || !orgName.trim() || !orgSlug.trim()}
+          >
+            Skip Payment & Create Free Trial
+          </Button>
+        </div>
         <p className="text-center text-xs text-muted-foreground mt-3">
           Secured by Stripe. You won&apos;t be charged during the 7-day trial.
         </p>

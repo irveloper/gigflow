@@ -7,10 +7,12 @@ import {
   BellRing,
   Building2,
   CalendarClock,
+  ChartNoAxesColumnIncreasing,
   CheckCircle2,
   ClipboardList,
   Clock3,
   DatabaseZap,
+  DollarSign,
   FileSpreadsheet,
   Fingerprint,
   History,
@@ -24,6 +26,7 @@ import {
   RadioTower,
   ShieldCheck,
   Sparkles,
+  TrendingUp,
   UsersRound,
 } from "lucide-react"
 
@@ -125,6 +128,40 @@ const scatteredChannels = [
   },
 ]
 
+const reportKpis = [
+  {
+    label: "Total eventos",
+    value: "128",
+    detail: "filtrados por rango de fechas",
+    icon: CalendarClock,
+  },
+  {
+    label: "Sets realizados",
+    value: "312",
+    detail: "la unidad real del servicio",
+    icon: ChartNoAxesColumnIncreasing,
+  },
+  {
+    label: "Por cobrar",
+    value: "$84.5k",
+    detail: "pendiente por evento",
+    icon: DollarSign,
+  },
+  {
+    label: "Check-in rate",
+    value: "94%",
+    detail: "cumplimiento operativo",
+    icon: TrendingUp,
+  },
+]
+
+const reportInsights = [
+  "Resumen general con KPIs reales por período.",
+  "Desglose por músico, banda y hotel.",
+  "Tendencias mensuales de eventos, sets y pagos.",
+  "Pagos por evento: pendiente, pagado, vencido y notas de referencia.",
+]
+
 const signals = [
   ["Notificación", "Check-in pendiente para Lobby Bossa a las 21:00"],
   ["Alerta", "La hora actual está fuera del rango normal del evento"],
@@ -144,8 +181,8 @@ const demoScript = [
   },
   {
     moment: "03",
-    title: "Probar el check-in",
-    detail: "Subraya llegada a tiempo, evidencia, ubicación y alerta si algo no cuadra.",
+    title: "Cerrar con reportes",
+    detail: "Muestra eventos, sets, check-in rate, por cobrar y pagos pendientes por evento.",
   },
 ]
 
@@ -209,8 +246,8 @@ export default function DemoDayPage() {
               {[
                 ["Eventos", "auditables"],
                 ["Check-in", "con evidencia"],
+                ["Reportes", "accionables"],
                 ["Catálogos", "unificados"],
-                ["Alertas", "accionables"],
               ].map(([top, bottom]) => (
                 <div key={top} className="rounded-lg border border-[#17120e] bg-white p-4 shadow-[4px_4px_0_#17120e]">
                   <p className="font-black text-lg leading-tight">{top}</p>
@@ -341,6 +378,63 @@ export default function DemoDayPage() {
         </div>
       </section>
 
+      <section className="border-[#17120e] border-b bg-[#fdfbf6] px-5 py-20 md:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-10 grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+            <div>
+              <p className="font-black text-[#f45d48] uppercase tracking-[0.24em]">Killer feature: reportes</p>
+              <h2 className="mt-3 text-balance font-black text-4xl leading-tight sm:text-6xl">
+                De controlar eventos a saber cuánto se hizo, quién cumplió y qué falta cobrar.
+              </h2>
+            </div>
+            <p className="max-w-2xl text-lg font-medium leading-8 text-[#4c4037]">
+              Los reportes convierten la operación diaria en decisiones de negocio: eventos reales, sets realizados, tasa de check-in, desglose por hotel y músico, y seguimiento de pagos por evento.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-4">
+            {reportKpis.map((kpi) => (
+              <article key={kpi.label} className="rounded-xl border border-[#17120e] bg-[#f7f3ea] p-5 shadow-[6px_6px_0_#17120e]">
+                <kpi.icon aria-hidden="true" className="mb-6 text-[#f45d48]" />
+                <p className="text-sm font-black uppercase tracking-[0.18em] text-[#8a786a]">{kpi.label}</p>
+                <p className="mt-2 font-black text-4xl">{kpi.value}</p>
+                <p className="mt-2 text-sm font-semibold text-[#65584d]">{kpi.detail}</p>
+              </article>
+            ))}
+          </div>
+
+          <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_1fr]">
+            <div className="rounded-2xl border-2 border-[#17120e] bg-[#17120e] p-5 text-white shadow-[10px_10px_0_#55c0a9]">
+              <div className="mb-5 flex items-center gap-3">
+                <ClipboardList aria-hidden="true" className="text-[#f8c84c]" />
+                <h3 className="font-black text-3xl">Lo que ya mide</h3>
+              </div>
+              <div className="grid gap-3">
+                {reportInsights.map((insight) => (
+                  <div key={insight} className="rounded-lg border border-white/20 bg-white/8 p-4 font-bold text-white/85">
+                    {insight}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border-2 border-[#17120e] bg-[#f8c84c] p-5 shadow-[10px_10px_0_#17120e]">
+              <p className="font-black text-3xl leading-tight">Reportes conectan la promesa con el dinero.</p>
+              <p className="mt-4 text-lg font-bold leading-8 text-[#4c4037]">
+                Si un hotel pregunta qué se tocó, quién llegó, cuántos sets se realizaron y cuánto queda pendiente, GigFlow puede responder desde los eventos reales. No desde estimaciones, no desde Excel.
+              </p>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                {["Pendiente", "Pagado", "Vencido", "Con referencia"].map((status) => (
+                  <div key={status} className="rounded-lg border border-[#17120e] bg-white p-4 font-black">
+                    {status}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="bg-[#fdfbf6] px-5 py-20 md:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end">
@@ -430,7 +524,7 @@ export default function DemoDayPage() {
               </h2>
             </div>
             <p className="max-w-2xl text-lg font-bold leading-8 text-white/75">
-              El producto ya conecta calendario, administración de eventos, músicos, hoteles, bandas, check-in, notificaciones, reportes y auditoría de eventos.
+              El producto ya conecta calendario, administración de eventos, músicos, hoteles, bandas, check-in, notificaciones, reportes, pagos y auditoría de eventos.
             </p>
           </div>
 
@@ -490,7 +584,7 @@ export default function DemoDayPage() {
 
           <div className="mt-12 flex flex-col items-start justify-between gap-5 border-[#f8c84c] border-t pt-8 md:flex-row md:items-center">
             <p className="max-w-2xl text-2xl font-black leading-tight">
-              Mensaje final: GigFlow no solo agenda música; convierte cada evento en una operación medible, verificable y escalable.
+              Mensaje final: GigFlow no solo agenda música; convierte cada evento en una operación medible, verificable y cobrable.
             </p>
             <Link
               className="group inline-flex items-center gap-2 rounded-full border border-[#f8c84c] bg-[#f8c84c] px-5 py-3 font-black text-[#17120e] shadow-[4px_4px_0_#f45d48] transition-transform hover:-translate-y-0.5"

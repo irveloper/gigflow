@@ -118,6 +118,7 @@ function mapEvent(e: {
   id: string
   title: string
   description: string | null
+  concept?: string | null
   date: string
   time: string
   sets: number
@@ -143,6 +144,7 @@ function mapEvent(e: {
     id: e.id,
     title: e.title,
     description: e.description ?? undefined,
+    concept: e.concept ?? undefined,
     date: e.date,
     time: e.time,
     sets: e.sets,
@@ -364,6 +366,7 @@ export const eventsRouter = router({
         data: {
           title: input.title,
           description: input.description ?? null,
+          concept: input.concept ?? null,
           date: input.date,
           time: input.time,
           sets: input.sets,
@@ -470,6 +473,7 @@ export const eventsRouter = router({
         data: {
           title: input.data.title,
           description: input.data.description ?? null,
+          concept: input.data.concept,
           date: input.data.date,
           time: input.data.time,
           sets: input.data.sets,

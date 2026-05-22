@@ -78,4 +78,64 @@ describe("organizations router", () => {
     expect(orgB?.id).toBe(ORG_B)
     expect(orgA?.id).not.toBe(orgB?.id)
   })
+
+  it("skipPayment flow creates organization, subscription and updates user role", async () => {
+    const testUserId = "test-user-skip-payment"
+    const testSlug = "test-skip-payment-slug"
+    
+    // Ensure clean state for the test user/org
+    await prisma.subscription.deleteMany({ where: { organization: { slug: testSlug } } })
+    await prisma.organization.deleteMany({ where: { slug: testSlug } })
+    await prisma.user.deleteMany({ where: { id: testUserId } })
+
+    // Create the test user first so update works
+    await prisma.user.create({
+      data: {
+        id: testUserId,
+        email: "skip-payment@test.com",
+        name: "Skip Payment User",
+        role: "manager",
+        password: "hashed_password",
+      }
+    })
+
+    const caller = await createTestCaller({ role: "manager", userId: testUserId })
+    const result = await caller.organizations.initiateCheckout({
+      name: "Skip Payment Org",
+      slug: testSlug,
+      planKey: "growth",
+      billing: "monthly",
+      skipPayment: true,
+    })
+
+    expect(result.url).toBe(`/onboarding/success?slug=${testSlug}`)
+
+    // Verify Organization was created
+    const org = await prisma.organization.findUnique({
+      where: { slug: testSlug }
+    })
+    expect(org).toBeDefined()
+    expect(org?.name).toBe("Skip Payment Org")
+    expect(org?.status).toBe("active")
+
+    // Verify Subscription was created with correct seat limit for Growth plan (10)
+    const sub = await prisma.subscription.findFirst({
+      where: { organizationId: org?.id }
+    })
+    expect(sub).toBeDefined()
+    expect(sub?.status).toBe("active")
+    expect(sub?.seatLimit).toBe(10)
+
+    // Verify User role was updated to manager and organizationId is set
+    const user = await prisma.user.findUnique({
+      where: { id: testUserId }
+    })
+    expect(user?.role).toBe("manager")
+    expect(user?.organizationId).toBe(org?.id)
+
+    // Cleanup
+    await prisma.subscription.deleteMany({ where: { organizationId: org?.id } })
+    await prisma.organization.deleteMany({ where: { id: org?.id } })
+    await prisma.user.delete({ where: { id: testUserId } })
+  })
 })

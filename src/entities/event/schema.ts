@@ -13,6 +13,7 @@ export const EventSchema = z.object({
   id: z.string(),
   title: z.string().min(1),
   description: z.string().optional(),
+  concept: z.string().optional(),
   date: DateString,
   time: TimeString,
   sets: Sets,

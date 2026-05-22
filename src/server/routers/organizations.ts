@@ -5,7 +5,7 @@ import {
   CreateOrganizationInputSchema,
   UpdateOrganizationInputSchema,
 } from "@/entities/organization/schema"
-import { stripe, } from "@/lib/stripe"
+import { stripe, PLANS, seatLimitForPrice, type PlanKey } from "@/lib/stripe"
 import { env } from "@/lib/env"
 import type { Organization } from "@/shared/types"
 
@@ -39,14 +39,17 @@ export const organizationsRouter = router({
     }),
 
   /**
-   * Initiates org creation via Stripe Checkout.
-   * The org is NOT created here — the webhook handler creates it after payment.
-   * Returns a Stripe Checkout URL; client redirects to it.
+   * Initiates org creation via Stripe Checkout or direct skip-payment bypass.
+   * If skipPayment is true, creates organization and subscription directly.
+   * Otherwise, returns a Stripe Checkout URL; client redirects to it.
    */
   initiateCheckout: protectedProcedure
     .input(
       CreateOrganizationInputSchema.extend({
-        priceId: z.string().min(1, "Price ID is required"),
+        priceId: z.string().optional(),
+        planKey: z.string().optional(),
+        billing: z.string().optional(),
+        skipPayment: z.boolean().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -59,6 +62,67 @@ export const organizationsRouter = router({
         throw new TRPCError({ code: "CONFLICT", message: "Slug already taken" })
       }
 
+      // Resolve Stripe price ID from planKey and billing if not directly provided
+      let priceId = input.priceId
+      if (!priceId && input.planKey && input.billing) {
+        const plan = PLANS[input.planKey as PlanKey]
+        if (plan) {
+          priceId = input.billing === "annual" ? plan.annual : plan.monthly
+        }
+      }
+
+      const seatLimit = priceId ? seatLimitForPrice(priceId) : 3
+
+      // Skip payment flow (mock subscription and create org directly)
+      if (input.skipPayment) {
+        const org = await ctx.prisma.organization.upsert({
+          where: { slug: input.slug },
+          update: { status: "active" },
+          create: { name: input.name, slug: input.slug, status: "active" },
+        })
+
+        const mockCustomerId = `mock-cus-${Math.random().toString(36).substring(7)}`
+        const mockSubId = `mock-sub-${Math.random().toString(36).substring(7)}`
+
+        await ctx.prisma.subscription.upsert({
+          where: { stripeCustomerId: mockCustomerId },
+          update: {
+            stripeSubscriptionId: mockSubId,
+            stripePriceId: priceId ?? "mock-price",
+            status: "active",
+            seatLimit,
+            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+          },
+          create: {
+            organizationId: org.id,
+            stripeCustomerId: mockCustomerId,
+            stripeSubscriptionId: mockSubId,
+            stripePriceId: priceId ?? "mock-price",
+            status: "active",
+            seatLimit,
+            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          },
+        })
+
+        await ctx.prisma.user.update({
+          where: { id: userId },
+          data: { organizationId: org.id, role: "manager" },
+        })
+
+        return {
+          url: `/onboarding/success?slug=${input.slug}`,
+          sessionId: "mock-session",
+        }
+      }
+
+      // Standard Stripe Checkout flow
+      if (!priceId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Selected plan is not configured. Please contact support or skip payment.",
+        })
+      }
+
       const customer = await stripe.customers.create({
         email: ctx.session.user.email ?? undefined,
         name: ctx.session.user.name ?? undefined,
@@ -68,7 +132,7 @@ export const organizationsRouter = router({
       const session = await stripe.checkout.sessions.create({
         customer: customer.id,
         mode: "subscription",
-        line_items: [{ price: input.priceId, quantity: 1 }],
+        line_items: [{ price: priceId, quantity: 1 }],
         subscription_data: {
           trial_period_days: 7,
           metadata: { orgSlug: input.slug, orgName: input.name, userId },

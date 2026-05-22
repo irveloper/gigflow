@@ -16,6 +16,7 @@
     "test:coverage": "vitest run --coverage",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "prisma db seed",
+    "db:seed:demo": "tsx prisma/demo-seed.ts",
     "typecheck": "tsc --noEmit",
     "prepare": "husky"
   },

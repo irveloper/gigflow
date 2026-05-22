@@ -16,6 +16,7 @@ export default function OnboardingSuccessPage() {
   const slug = params.get("slug")
   const [status, setStatus] = useState<"polling" | "ready" | "timeout">("polling")
   const attempts = useRef(0)
+  const pollingStarted = useRef(false)
 
   useEffect(() => {
     if (!slug) {
@@ -23,19 +24,38 @@ export default function OnboardingSuccessPage() {
       return
     }
 
+    if (pollingStarted.current) return
+    pollingStarted.current = true
+
     const poll = async () => {
       attempts.current++
       try {
-        const sub = await trpc.billing.getSubscription.query()
-        if (sub.status === "trialing" || sub.status === "active") {
-          setStatus("ready")
-          setTimeout(() => {
-            router.replace(`/org/${slug}`)
-          }, 1500)
-          return
+        // Fetch current user from database via tRPC (bypassing stale session cookie)
+        const dbUser = await trpc.auth.me.query()
+
+        if (dbUser.organizationId) {
+          // Explicitly update session with organization context to sync the cookie
+          await update({
+            user: {
+              organizationId: dbUser.organizationId,
+              organizationSlug: dbUser.organizationSlug,
+              role: dbUser.role,
+            },
+          })
+
+          // Check if billing subscription is active (this will now succeed because cookie has organizationId)
+          const sub = await trpc.billing.getSubscription.query()
+          if (sub.status === "trialing" || sub.status === "active") {
+            setStatus("ready")
+            setTimeout(() => {
+              router.replace(`/org/${slug}`)
+            }, 1500)
+            return
+          }
         }
-      } catch {
-        // subscription not yet created — keep polling
+      } catch (err) {
+        console.error("Onboarding success polling check:", err)
+        // Keep polling
       }
 
       if (attempts.current >= MAX_ATTEMPTS) {
@@ -46,9 +66,7 @@ export default function OnboardingSuccessPage() {
       setTimeout(poll, POLL_INTERVAL_MS)
     }
 
-    // Flush the JWT before polling — the Stripe webhook updates organizationId in the DB
-    // but cannot refresh the session. Without this, orgProcedure throws on the first attempt.
-    update().then(() => setTimeout(poll, POLL_INTERVAL_MS))
+    poll()
   }, [slug, router, update])
 
   return (

@@ -19,6 +19,46 @@ export const {
   ...authConfig,
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
+  callbacks: {
+    ...authConfig.callbacks,
+    async jwt({ token, user, trigger, session }) {
+      console.log("[auth.ts] jwt callback start:", { trigger, tokenUserId: token?.id, hasUser: !!user, hasSession: !!session })
+      let updatedToken = token
+      if (authConfig.callbacks?.jwt) {
+        updatedToken = await authConfig.callbacks.jwt({ token, user, trigger, session })
+      }
+
+      if (trigger === "update" && updatedToken.id) {
+        console.log("[auth.ts] jwt update trigger database query for user:", updatedToken.id)
+        const dbUser = await prisma.user.findUnique({
+          where: { id: updatedToken.id as string },
+          include: {
+            organization: { select: { id: true, slug: true } },
+            musician: { select: { id: true } },
+          },
+        })
+        console.log("[auth.ts] dbUser query result:", {
+          found: !!dbUser,
+          organizationId: dbUser?.organizationId,
+          organizationSlug: dbUser?.organization?.slug,
+        })
+        if (dbUser) {
+          updatedToken.organizationId = dbUser.organizationId ?? undefined
+          updatedToken.organizationSlug = dbUser.organization?.slug ?? undefined
+          updatedToken.role = dbUser.role ?? undefined
+          updatedToken.emailVerified = dbUser.emailVerified !== null
+          updatedToken.musicianId = dbUser.musician?.id ?? undefined
+        }
+      }
+
+      console.log("[auth.ts] jwt callback end:", {
+        id: updatedToken.id,
+        organizationId: updatedToken.organizationId,
+        organizationSlug: updatedToken.organizationSlug
+      })
+      return updatedToken
+    },
+  },
   providers: [
     CredentialsProvider({
       name: "Credentials",
