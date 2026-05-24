@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/react"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import "./globals.css"
 import { Providers } from "./providers"
+import { PwaRegister } from "@/components/pwa-register"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
@@ -31,6 +32,7 @@ export default async function RootLayout({
         <Providers>
           {children}
         </Providers>
+        <PwaRegister />
         <Analytics />
         <SpeedInsights />
       </body>
